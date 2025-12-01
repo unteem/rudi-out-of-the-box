@@ -14,6 +14,37 @@ echo "Generating SSL Keystores"
 echo "========================================="
 echo ""
 
+# Check for required tools
+if ! command -v keytool &> /dev/null; then
+  echo "ERROR: keytool not found!"
+  echo ""
+  echo "keytool is part of Java JDK. Install it with:"
+  echo ""
+  echo "  # Debian/Ubuntu:"
+  echo "  sudo apt install openjdk-17-jdk"
+  echo ""
+  echo "  # Or:"
+  echo "  sudo apt install default-jdk"
+  echo ""
+  echo "After installation, verify:"
+  echo "  keytool -version"
+  echo ""
+  echo "See DEBIAN-INSTALL-GUIDE.md for detailed instructions."
+  exit 1
+fi
+
+if ! command -v openssl &> /dev/null; then
+  echo "ERROR: openssl not found!"
+  echo ""
+  echo "Install OpenSSL with:"
+  echo "  sudo apt install openssl"
+  exit 1
+fi
+
+echo "✓ Found keytool: $(which keytool)"
+echo "✓ Found openssl: $(which openssl)"
+echo ""
+
 # Check if passwords file exists
 if [ ! -f "$ROOT_DIR/.passwords.env" ]; then
   echo "ERROR: .passwords.env not found!"
@@ -92,37 +123,26 @@ for service in "${SERVICES[@]}"; do
   echo "[$CURRENT/$TOTAL] Creating keystore for $service..."
   
   SERVICE_DIR="$ROOT_DIR/config/$service"
-  TEMP_P12="$SERVICE_DIR/rudi-https-certificate.p12"
   FINAL_JKS="$SERVICE_DIR/rudi-https-certificate.jks"
   
   # Use service-specific password or default
   PASSWORD="${KEYSTORE_PASSWORD}"
   
-  # Step 1: Convert PEM to PKCS12
+  # Direct conversion from PEM to PKCS12 keystore with .jks extension
+  # Modern Java (8+) supports PKCS12 keystores with .jks extension
   openssl pkcs12 -export \
     -in "$CERT_FILE" \
     -inkey "$KEY_FILE" \
-    -out "$TEMP_P12" \
+    -out "$FINAL_JKS" \
     -name "rudi-https" \
     -password "pass:$PASSWORD" \
     2>/dev/null
   
-  # Step 2: Convert PKCS12 to JKS (PKCS12 format is also accepted by Java)
-  # Note: Modern Java prefers PKCS12, but we keep JKS extension for compatibility
-  keytool -importkeystore \
-    -srckeystore "$TEMP_P12" \
-    -srcstoretype PKCS12 \
-    -srcstorepass "$PASSWORD" \
-    -destkeystore "$FINAL_JKS" \
-    -deststoretype PKCS12 \
-    -deststorepass "$PASSWORD" \
-    -destkeypass "$PASSWORD" \
-    -alias "rudi-https" \
-    -noprompt \
-    2>/dev/null
-  
-  # Clean up temporary file
-  rm -f "$TEMP_P12"
+  if [ $? -ne 0 ]; then
+    echo "  ✗ Failed to create keystore for $service"
+    echo "  Check that certificate and key files are valid"
+    continue
+  fi
   
   # Set proper permissions
   chmod 600 "$FINAL_JKS"
@@ -139,6 +159,9 @@ if [ -d "$ROOT_DIR/config/konsent" ]; then
   echo "  Creating rudi-consent.jks..."
   CONSENT_JKS="$ROOT_DIR/config/konsent/rudi-consent.jks"
   
+  # Remove old keystore if exists
+  rm -f "$CONSENT_JKS"
+  
   keytool -genkeypair \
     -alias "rudi-consent" \
     -keyalg RSA \
@@ -149,16 +172,23 @@ if [ -d "$ROOT_DIR/config/konsent" ]; then
     -keypass "$CONSENT_KEYSTORE_PASSWORD" \
     -storetype PKCS12 \
     -dname "CN=RUDI Consent,OU=Consent Management,O=RUDI Platform,C=FR" \
-    2>/dev/null
+    2>&1 | grep -v "Warning" || true
   
-  chmod 600 "$CONSENT_JKS"
-  echo "  ✓ Consent keystore created"
+  if [ -f "$CONSENT_JKS" ]; then
+    chmod 600 "$CONSENT_JKS"
+    echo "  ✓ Consent keystore created"
+  else
+    echo "  ✗ Failed to create consent keystore"
+  fi
 fi
 
 # Selfdata keystore (for personal data encryption)
 if [ -d "$ROOT_DIR/config/selfdata" ]; then
   echo "  Creating rudi-selfdata.jks..."
   SELFDATA_JKS="$ROOT_DIR/config/selfdata/rudi-selfdata.jks"
+  
+  # Remove old keystore if exists
+  rm -f "$SELFDATA_JKS"
   
   keytool -genkeypair \
     -alias "rudi-selfdata" \
@@ -170,10 +200,21 @@ if [ -d "$ROOT_DIR/config/selfdata" ]; then
     -keypass "$SELFDATA_KEYSTORE_PASSWORD" \
     -storetype PKCS12 \
     -dname "CN=RUDI Selfdata,OU=Personal Data,O=RUDI Platform,C=FR" \
-    2>/dev/null
+    2>&1 | grep -v "Warning" || true
   
-  chmod 600 "$SELFDATA_JKS"
-  echo "  ✓ Selfdata keystore created"
+  if [ -f "$SELFDATA_JKS" ]; then
+    chmod 600 "$SELFDATA_JKS"
+    echo "  ✓ Selfdata keystore created"
+  else
+    echo "  ✗ Failed to create selfdata keystore"
+  fi
+fi
+
+# Apigateway keystore (for API key encryption) - if needed
+if [ -d "$ROOT_DIR/config/apigateway" ]; then
+  # Check if a separate keystore is needed or if SSL keystore is used
+  # Most installations use the SSL keystore, so we skip creating a separate one
+  echo "  ℹ  Apigateway uses SSL keystore (already created)"
 fi
 
 # Save keystore passwords reference

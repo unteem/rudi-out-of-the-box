@@ -1,0 +1,64 @@
+server.port=8443
+
+server.ssl.enabled=true
+server.ssl.key-store=file:/etc/rudi/config/rudi-https-certificate.jks
+server.ssl.key-store-password=${KEYSTORE_PASSWORD}
+server.ssl.key-store-type=PKCS12
+server.ssl.key-alias=rudi-https
+server.ssl.key-password=${server.ssl.key-store-password}
+trust.trust-all-certs=true
+
+# Configuration BDD
+spring.datasource.url=jdbc:postgresql://database:5432/rudi
+spring.datasource.username=acl
+spring.datasource.password=${DB_ACL}
+spring.jpa.show-sql=true
+
+spring.flyway.enabled=true
+spring.jpa.hibernate.ddl-auto=none
+
+# Eureka
+eureka.client.serviceURL.defaultZone=https://${EUREKA_USER}:${EUREKA_PASSWORD}@registry:8761/eureka
+eureka.client.register-with-eureka=true
+eureka.client.fetch-registry=true
+
+eureka.instance.instance-id=${spring.application.name}:${random.uuid}
+eureka.instance.hostname=eureka
+eureka.instance.prefer-ip-address=true
+eureka.instance.nonSecurePortEnabled=false
+eureka.instance.securePortEnabled=true
+
+eureka.client.tls.enabled=${server.ssl.enabled}
+eureka.client.tls.key-store=file:/etc/rudi/config/rudi-https-certificate.jks
+eureka.client.tls.key-store-type=${server.ssl.key-store-type}
+eureka.client.tls.key-password=${KEYSTORE_PASSWORD}
+eureka.client.tls.key-store-password=${eureka.client.tls.key-password}
+eureka.client.tls.trust-store=${eureka.client.tls.key-store}
+eureka.client.tls.trust-store-password=${eureka.client.tls.key-password}
+eureka.client.tls.trust-store-type=${server.ssl.key-store-type}
+
+security.jwt.access.tokenKey=file:/etc/rudi/config/key/id_rsa
+
+module.oauth2.trust-all-certs=true
+module.oauth2.check-token-uri=https://localhost:8443/oauth2/check_token
+
+freemarker.baseDirectory=/etc/rudi/config/
+
+# TODO add documentation to change
+mail.smtp.host=mailhog
+mail.smtp.port=1025
+mail.smtp.auth=false
+mail.smtp.starttls.enable=false
+mail.from=nepasrepondre@rudi.localhost
+
+email.urlServer=https://rudi.${base_dn}
+email.urlContact=https://rudi.${base_dn}
+email.teamName=RooB
+email.projectName=RooB
+
+
+# Params du captcha
+rudi.captcha.enabled=false
+rudi.captcha.client-id=to defined
+rudi.captcha.client-secret=to defined
+rudi.captcha.client-name=to defined

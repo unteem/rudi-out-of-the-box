@@ -79,11 +79,25 @@ fi
 # Check keytool
 if ! command -v keytool &> /dev/null; then
   log_error "keytool is not installed (part of Java JDK)"
-  echo "Install Java JDK: apt install default-jdk"
+  echo ""
+  echo "Install Java JDK on Debian/Ubuntu:"
+  echo "  sudo apt install openjdk-17-jdk"
+  echo ""
+  echo "Or use default JDK:"
+  echo "  sudo apt install default-jdk"
+  echo ""
+  echo "After installation, verify:"
+  echo "  keytool -version"
+  echo ""
+  echo "See DEBIAN-INSTALL-GUIDE.md for complete instructions."
   exit 1
 fi
 
 log_success "All prerequisites met"
+echo ""
+log_info "Using keytool: $(which keytool)"
+log_info "Java version: $(java -version 2>&1 | head -1)"
+echo ""
 
 # Configuration
 echo ""
@@ -205,6 +219,16 @@ log_success "SSL keystores generated"
 log_info "[6/10] Updating configuration files..."
 bash scripts/update-configs.sh
 log_success "Configurations updated"
+
+# Step 6.5: Prepare database init files with envsubst
+log_info "[6.5/10] Preparing database initialization files..."
+bash scripts/prepare-database-init.sh
+log_success "Database init files prepared"
+
+# Step 6.6: Prepare properties files with envsubst
+log_info "[6.6/10] Preparing properties files..."
+bash scripts/prepare-properties.sh
+log_success "Properties files prepared"
 
 # Step 7: Create Docker network
 log_info "[7/10] Creating Docker network..."

@@ -1,0 +1,81 @@
+server.port=8443
+
+server.ssl.enabled=true
+server.ssl.key-store=file:/etc/rudi/config/rudi-https-certificate.jks
+server.ssl.key-store-password=${KEYSTORE_PASSWORD}
+server.ssl.key-store-type=PKCS12
+server.ssl.key-alias=rudi-https
+server.ssl.key-password=${server.ssl.key-store-password}
+#trust.store=${server.ssl.key-store}
+#trust.store.password=${server.ssl.key-store-password}
+trust.trust-all-certs=true
+
+# Configuration BDD
+spring.datasource.url=jdbc:postgresql://database:5432/rudi
+spring.datasource.username=konsent
+spring.datasource.password=${DB_KONSENT}
+spring.jpa.show-sql=true
+
+# Obligatoire en prod pour retrouver les tables créées par rudi-facet-bpmn
+spring.jpa.properties.hibernate.default_schema=konsent_data
+
+spring.flyway.enabled=true
+spring.jpa.hibernate.ddl-auto=none
+
+# Eureka
+eureka.client.serviceURL.defaultZone=https://${EUREKA_USER}:${EUREKA_PASSWORD}@registry:8761/eureka
+eureka.client.register-with-eureka=true
+eureka.client.fetch-registry=true
+
+eureka.instance.instance-id=${spring.application.name}:${random.uuid}
+eureka.instance.hostname=localhost
+eureka.instance.prefer-ip-address=true
+eureka.instance.nonSecurePortEnabled=false
+eureka.instance.securePortEnabled=true
+
+eureka.client.tls.enabled=${server.ssl.enabled}
+eureka.client.tls.key-store=file:/etc/rudi/config/rudi-https-certificate.jks
+eureka.client.tls.key-store-type=${server.ssl.key-store-type}
+eureka.client.tls.key-password=${KEYSTORE_PASSWORD}
+eureka.client.tls.key-store-password=${eureka.client.tls.key-password}
+eureka.client.tls.trust-store=${eureka.client.tls.key-store}
+eureka.client.tls.trust-store-password=${eureka.client.tls.key-password}
+eureka.client.tls.trust-store-type=${server.ssl.key-store-type}
+
+security.jwt.access.tokenKey=file:/etc/rudi/config/key/id_rsa
+
+# Rudi OAuth2
+module.oauth2.trust-all-certs=true
+module.oauth2.provider-uri=https://acl:8443/oauth2/token
+module.oauth2.check-token-uri=https://acl:8443/oauth2/check_token
+module.oauth2.client-id=konsent
+module.oauth2.client-secret=${MS_KONSENT}
+module.oauth2.scope=read,write
+
+# Signature + Conversion to PDFA
+rudi.pdf.sign.keyStorePath=/etc/rudi/config/konsent/rudi-consent.jks
+rudi.pdf.sign.keyStorePassword=${CONSENT_KEYSTORE_PASSWORD}
+rudi.pdf.sign.keyStoreKeyAlias=rudi-dev
+rudi.pdf.sign.keyStoreKeyPassword=${CONSENT_KEYSTORE_PASSWORD}
+rudi.pdf.ghostscriptEnabled=true
+rudi.pdf.sign.debug=true
+
+freemarker.baseDirectory=/etc/rudi/config/konsent
+freemarker.basePackage=templates
+
+# SHA validation
+rudi.consent.validate.sha.salt=${CONSENT_VALIDATE_SALT}
+rudi.consent.revoke.sha.salt=${CONSENT_REVOKE_SALT}
+rudi.treatmentversion.publish.sha.salt=${TREATMENTVERSION_PUBLISH_SALT}
+
+rudi.konsent.scheduler.consent.delay=60000
+rudi.konsent.scheduler.revoke.delay=60000
+rudi.konsent.scheduler.treatment.delay=60000
+
+# Min IO, stockage des PDF-A
+rudi.documentstorage.endPoint=https://minio.localhost
+rudi.documentstorage.bucketName=roob
+rudi.documentstorage.identity=roob
+rudi.documentstorage.credential=roob
+rudi.documentstorage.trustAllCerts=True
+
