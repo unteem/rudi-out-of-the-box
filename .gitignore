@@ -3,9 +3,18 @@
 # Sensitive configuration files
 .passwords.env
 .env.local
+.env.smtp
 .keystore-info.txt
 *.producer-credentials.env
 register-on-portal.sql
+
+# Generated SQL files (templates are kept in git)
+config/rudi-init/01-usr.sql
+!config/rudi-init/01-usr.sql.template
+
+# Generated properties files (templates are kept in git)
+config/*/*.properties
+!config/*/*.properties.template
 
 # Backup directories
 config-backup-*

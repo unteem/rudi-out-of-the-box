@@ -58,11 +58,13 @@ dataverse.api.rudi.archive.alias=rudi_archive
 
 freemarker.baseDirectory=/etc/rudi/config/selfdata
 
-mail.smtp.host=mailhog
-mail.smtp.port=1025
-mail.smtp.auth=false
-mail.smtp.starttls.enable=false
-mail.from=nepasrepondre@rudi.localhost
+mail.smtp.host=${SMTP_HOST}
+mail.smtp.port=${SMTP_PORT}
+mail.smtp.auth=${SMTP_AUTH}
+mail.smtp.username=${SMTP_USERNAME}
+mail.smtp.password=${SMTP_PASSWORD}
+mail.smtp.starttls.enable=${SMTP_STARTTLS}
+mail.from=${SMTP_FROM}
 
 email.urlServer=http://rudi.${base_dn}
 

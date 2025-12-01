@@ -44,12 +44,13 @@ module.oauth2.check-token-uri=https://localhost:8443/oauth2/check_token
 
 freemarker.baseDirectory=/etc/rudi/config/
 
-# TODO add documentation to change
-mail.smtp.host=mailhog
-mail.smtp.port=1025
-mail.smtp.auth=false
-mail.smtp.starttls.enable=false
-mail.from=nepasrepondre@rudi.localhost
+mail.smtp.host=${SMTP_HOST}
+mail.smtp.port=${SMTP_PORT}
+mail.smtp.auth=${SMTP_AUTH}
+mail.smtp.username=${SMTP_USERNAME}
+mail.smtp.password=${SMTP_PASSWORD}
+mail.smtp.starttls.enable=${SMTP_STARTTLS}
+mail.from=${SMTP_FROM}
 
 email.urlServer=https://rudi.${base_dn}
 email.urlContact=https://rudi.${base_dn}

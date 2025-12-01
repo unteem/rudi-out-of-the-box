@@ -38,6 +38,23 @@ fi
 # Source passwords
 source .passwords.env
 
+# Source SMTP configuration if exists
+if [ -f ".env.smtp" ]; then
+  log_info "Loading SMTP configuration from .env.smtp"
+  source .env.smtp
+else
+  log_warning "No .env.smtp found - using default mailhog configuration"
+  log_info "For production, copy .env.smtp.example to .env.smtp and configure"
+  # Set defaults for testing (mailhog)
+  export SMTP_HOST=${SMTP_HOST:-mailhog}
+  export SMTP_PORT=${SMTP_PORT:-1025}
+  export SMTP_AUTH=${SMTP_AUTH:-false}
+  export SMTP_STARTTLS=${SMTP_STARTTLS:-false}
+  export SMTP_USERNAME=${SMTP_USERNAME:-}
+  export SMTP_PASSWORD=${SMTP_PASSWORD:-}
+  export SMTP_FROM=${SMTP_FROM:-noreply@rudi.localhost}
+fi
+
 # Export variables that we want envsubst to replace
 # IMPORTANT: Only list variables we want to replace, not Spring Boot placeholders!
 export DB_ACL DB_APIGATEWAY DB_KALIM DB_KONSENT DB_KOS \
@@ -54,6 +71,9 @@ export EUREKA_USER EUREKA_PASSWORD DATAVERSE_API_TOKEN
 export CONSENT_VALIDATE_SALT CONSENT_REVOKE_SALT \
        TREATMENTVERSION_PUBLISH_SALT
 
+export SMTP_HOST SMTP_PORT SMTP_AUTH SMTP_STARTTLS \
+       SMTP_USERNAME SMTP_PASSWORD SMTP_FROM
+
 export base_dn
 
 # List of variables to replace (CRITICAL: only these will be replaced)
@@ -63,6 +83,7 @@ ENVSUBST_VARS="$ENVSUBST_VARS "'$MS_ACL $MS_APIGATEWAY $MS_KALIM $MS_KONSENT $MS
 ENVSUBST_VARS="$ENVSUBST_VARS "'$KEYSTORE_PASSWORD $CONSENT_KEYSTORE_PASSWORD $SELFDATA_KEYSTORE_PASSWORD $APIGATEWAY_KEYSTORE_PASSWORD'
 ENVSUBST_VARS="$ENVSUBST_VARS "'$EUREKA_USER $EUREKA_PASSWORD $DATAVERSE_API_TOKEN'
 ENVSUBST_VARS="$ENVSUBST_VARS "'$CONSENT_VALIDATE_SALT $CONSENT_REVOKE_SALT $TREATMENTVERSION_PUBLISH_SALT'
+ENVSUBST_VARS="$ENVSUBST_VARS "'$SMTP_HOST $SMTP_PORT $SMTP_AUTH $SMTP_STARTTLS $SMTP_USERNAME $SMTP_PASSWORD $SMTP_FROM'
 ENVSUBST_VARS="$ENVSUBST_VARS "'$base_dn'
 
 log_info "Processing microservice properties files..."
@@ -134,6 +155,7 @@ echo "  - Database passwords: DB_ACL, DB_KALIM, etc."
 echo "  - OAuth2 secrets: MS_ACL, MS_KALIM, etc."
 echo "  - Keystore passwords: KEYSTORE_PASSWORD, etc."
 echo "  - Application: EUREKA_PASSWORD, DATAVERSE_API_TOKEN"
+echo "  - SMTP: SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD, etc."
 echo ""
 echo "Variables preserved (examples):"
 echo "  - \${server.ssl.key-store-password}"
