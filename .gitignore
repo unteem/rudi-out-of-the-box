@@ -1,1 +1,41 @@
 /.project
+
+# Sensitive configuration files
+.passwords.env
+.env.local
+.keystore-info.txt
+*.producer-credentials.env
+register-on-portal.sql
+
+# Backup directories
+config-backup-*
+
+# SSL certificates and keys (add your actual certs to separate secure storage)
+certs/*.pem
+certs/*.key
+certs/*.crt
+config/*/key/id_rsa
+config/*/key/id_rsa.pub
+config/*/*.jks
+config/*/*.p12
+
+# Database data (should be backed up separately)
+database-data/
+data/dataverse/dataverse-files/
+data/magnolia/repository/
+data/solr/solr-data/
+
+# Logs
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+*~
+.swp
+
+# IDE
+.idea/
+.vscode/
+*.iml
