@@ -1,127 +1,241 @@
 ---
+# Docker Compose Network Configuration with Let's Encrypt
+# Traefik v3 - Using configuration file (RECOMMENDED)
+# This approach uses traefik.yml for configuration instead of CLI flags
+
 name: rudiplatform
 
 services:
   reverse-proxy:
-    # The official v2 Traefik docker image
-    image: traefik:v2.11.31
-    # Enables the web UI and tells Traefik to listen to docker
-    command:
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--providers.docker.network=traefik"
-      - "--serversTransport.insecureSkipVerify=true"
+    image: traefik:v3.6  # Latest stable version
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      # Docker socket for provider
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      
+      # Static configuration file (MAIN CONFIG)
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      
+      # Certificate storage
+      - ./traefik/acme.json:/acme.json
+      
+      # Logs directory
+      - ./logs/traefik:/var/log/traefik
+      
+      # Optional: Dynamic configuration directory
+      # - ./traefik/dynamic:/etc/traefik/dynamic:ro
+    
+    environment:
+      # Environment variables that can be used in traefik.yml
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-admin@example.com}
+    
+    networks:
+      - traefik
+    
+    restart: unless-stopped
 
-
-  #Label pour dataverse
+  # Solr — pas exposé publiquement, accessible uniquement par Dataverse en interne
   solr:
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.solr.rule=Host(`solr.${base_dn}`)"
-      - "traefik.http.services.solr.loadbalancer.server.port=8983"
+      - "traefik.enable=false"
+    networks:
+      - default
 
+  # Dataverse
   dataverse:
     labels:
       - "traefik.enable=true"
+      # TODO dataverse.rudi
       - "traefik.http.routers.dataverse.rule=Host(`dataverse.${base_dn}`)"
+      - "traefik.http.routers.dataverse.entrypoints=websecure"
+      - "traefik.http.routers.dataverse.tls=true"
+      - "traefik.http.routers.dataverse.tls.certresolver=letsencrypt"
       - "traefik.http.services.dataverse.loadbalancer.server.port=8080"
-
-  #label pour magnolia
+    networks:
+      - traefik
+      - default
+      
+  # Magnolia
   magnolia:
     labels:
       - "traefik.enable=true"
+      # TODO magnolia.rudi
       - "traefik.http.routers.magnolia.rule=Host(`magnolia.${base_dn}`)"
+      - "traefik.http.routers.magnolia.entrypoints=websecure"
+      - "traefik.http.routers.magnolia.tls=true"
+      - "traefik.http.routers.magnolia.tls.certresolver=letsencrypt"
       - "traefik.http.services.magnolia.loadbalancer.server.port=8080"
-
-  #label pour portail
+    networks:
+      - traefik
+      - default
+      
+  # Gateway
   gateway:
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.gateway.rule=Host(`rudi.${base_dn}`) && PathPrefix(`/gateway`)"
+      - "traefik.http.routers.gateway.entrypoints=websecure"
+      - "traefik.http.routers.gateway.tls=true"
+      - "traefik.http.routers.gateway.tls.certresolver=letsencrypt"
       - "traefik.http.services.gateway.loadbalancer.server.scheme=https"
       - "traefik.http.services.gateway.loadbalancer.server.port=8443"
-      - "traefik.http.routers.gateway.rule=Host(`rudi.${base_dn}`) && PathPrefix(`/gateway`)"
-
+    networks:
+      - traefik
+      - default
+      
+  # API Gateway
   apigateway:
     labels:
       - "traefik.enable=true"
-      - "traefik.http.services.apigateway.loadbalancer.server.scheme=https"
-      - "traefik.http.services.apigateway.loadbalancer.server.port=8443"
+      - "traefik.http.routers.apigateway.rule=Host(`rudi.${base_dn}`) && ( PathPrefix(`/apigateway`) || PathPrefix(`/medias`) )"
+      - "traefik.http.routers.apigateway.entrypoints=websecure"
+      - "traefik.http.routers.apigateway.tls=true"
+      - "traefik.http.routers.apigateway.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.apigateway.middlewares=apigateway-rewritepath"
       - "traefik.http.middlewares.apigateway-rewritepath.replacepathregex.regex=^/medias/(.*)"
       - "traefik.http.middlewares.apigateway-rewritepath.replacepathregex.replacement=/apigateway/datasets/$$1"
-      - "traefik.http.routers.apigateway.middlewares=apigateway-rewritepath"
-      - "traefik.http.routers.apigateway.rule=Host(`rudi.${base_dn}`) && ( PathPrefix(`/apigateway`) || PathPrefix(`/medias`))"
+      - "traefik.http.services.apigateway.loadbalancer.server.scheme=https"
+      - "traefik.http.services.apigateway.loadbalancer.server.port=8443"
+    networks:
+      - traefik
+      - default
       
+  # Strukture
   strukture:
     labels:
       - "traefik.enable=true"
-      - "traefik.http.services.strukture.loadbalancer.server.scheme=https"
-      - "traefik.http.services.strukture.loadbalancer.server.port=8443"
+      - "traefik.http.routers.strukture.rule=Host(`rudi.${base_dn}`) && ( PathPrefix(`/strukture`) || PathPrefix(`/node`) )"
+      - "traefik.http.routers.strukture.entrypoints=websecure"
+      - "traefik.http.routers.strukture.tls=true"
+      - "traefik.http.routers.strukture.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.strukture.middlewares=strukture-rewritepath"
       - "traefik.http.middlewares.strukture-rewritepath.replacepathregex.regex=^/node/(.*)"
       - "traefik.http.middlewares.strukture-rewritepath.replacepathregex.replacement=/strukture/$$1"
-      - "traefik.http.routers.strukture.middlewares=strukture-rewritepath"
-      - "traefik.http.routers.strukture.rule=Host(`rudi.${base_dn}`) && ( PathPrefix(`/strukture`) || PathPrefix(`/node`))"
-
+      - "traefik.http.services.strukture.loadbalancer.server.scheme=https"
+      - "traefik.http.services.strukture.loadbalancer.server.port=8443"
+    networks:
+      - traefik
+      - default
+      
+  # ACL
   acl:
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.acl.rule=Host(`rudi.${base_dn}`) && ( PathPrefix(`/acl`) || PathPrefix(`/anonymous`) || PathPrefix(`/authenticate`) || PathPrefix(`/refresh_token`) || PathPrefix(`/check_credential`) || PathPrefix(`/oauth`) )"
+      - "traefik.http.routers.acl.entrypoints=websecure"
+      - "traefik.http.routers.acl.tls=true"
+      - "traefik.http.routers.acl.tls.certresolver=letsencrypt"
       - "traefik.http.services.acl.loadbalancer.server.scheme=https"
       - "traefik.http.services.acl.loadbalancer.server.port=8443"
-      - "traefik.http.routers.acl.rule=Host(`rudi.${base_dn}`) && ( PathPrefix(`/acl`) || PathPrefix(`/anonymous`) || PathPrefix(`/authenticate`) || PathPrefix(`/refresh_token`) || PathPrefix(`/check_credential`) || PathPrefix(`/oauth`))"
-
+    networks:
+      - traefik
+      - default
+      
+  # Konsult
   konsult:
     labels:
       - "traefik.enable=true"
-      - "traefik.http.services.konsult.loadbalancer.server.scheme=https"
-      - "traefik.http.services.konsult.loadbalancer.server.port=8443"
+      - "traefik.http.routers.konsult.rule=Host(`rudi.${base_dn}`) && ( PathPrefix(`/konsult`) || Path(`/robots.txt`) )"
+      - "traefik.http.routers.konsult.entrypoints=websecure"
+      - "traefik.http.routers.konsult.tls=true"
+      - "traefik.http.routers.konsult.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.konsult.middlewares=konsult-robots-rewritepath"
       - "traefik.http.middlewares.konsult-robots-rewritepath.replacepathregex.regex=^/robots\\.txt"
       - "traefik.http.middlewares.konsult-robots-rewritepath.replacepathregex.replacement=/konsult/v1/robots/robots"
-      - "traefik.http.routers.konsult.middlewares=konsult-robots-rewritepath"
-      - "traefik.http.routers.konsult.rule=Host(`rudi.${base_dn}`) && ( PathPrefix(`/konsult`) || Path(`/robots.txt`) )"
-
+      - "traefik.http.services.konsult.loadbalancer.server.scheme=https"
+      - "traefik.http.services.konsult.loadbalancer.server.port=8443"
+    networks:
+      - traefik
+      - default
+      
+  # Kalim
   kalim:
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.kalim.rule=Host(`rudi.${base_dn}`) && PathPrefix(`/kalim`)"
+      - "traefik.http.routers.kalim.entrypoints=websecure"
+      - "traefik.http.routers.kalim.tls=true"
+      - "traefik.http.routers.kalim.tls.certresolver=letsencrypt"
       - "traefik.http.services.kalim.loadbalancer.server.scheme=https"
       - "traefik.http.services.kalim.loadbalancer.server.port=8443"
-      - "traefik.http.routers.kalim.rule=Host(`rudi.${base_dn}`) && PathPrefix(`/kalim`)"
-
+    networks:
+      - traefik
+      - default
+      
+  # KOS
   kos:
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.kos.rule=Host(`rudi.${base_dn}`) && PathPrefix(`/kos`)"
+      - "traefik.http.routers.kos.entrypoints=websecure"
+      - "traefik.http.routers.kos.tls=true"
+      - "traefik.http.routers.kos.tls.certresolver=letsencrypt"
       - "traefik.http.services.kos.loadbalancer.server.scheme=https"
       - "traefik.http.services.kos.loadbalancer.server.port=8443"
-      - "traefik.http.routers.kos.rule=Host(`rudi.${base_dn}`) && PathPrefix(`/kos`)"
-
+    networks:
+      - traefik
+      - default
+      
+  # Konsent
   konsent:
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.konsent.rule=Host(`rudi.${base_dn}`) && PathPrefix(`/konsent`)"
+      - "traefik.http.routers.konsent.entrypoints=websecure"
+      - "traefik.http.routers.konsent.tls=true"
+      - "traefik.http.routers.konsent.tls.certresolver=letsencrypt"
       - "traefik.http.services.konsent.loadbalancer.server.scheme=https"
       - "traefik.http.services.konsent.loadbalancer.server.port=8443"
-      - "traefik.http.routers.konsent.rule=Host(`rudi.${base_dn}`) && PathPrefix(`/konsent`)"
-
+    networks:
+      - traefik
+      - default
+      
+  # Projekt
   projekt:
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.projekt.rule=Host(`rudi.${base_dn}`) && PathPrefix(`/projekt`)"
+      - "traefik.http.routers.projekt.entrypoints=websecure"
+      - "traefik.http.routers.projekt.tls=true"
+      - "traefik.http.routers.projekt.tls.certresolver=letsencrypt"
       - "traefik.http.services.projekt.loadbalancer.server.scheme=https"
       - "traefik.http.services.projekt.loadbalancer.server.port=8443"
-      - "traefik.http.routers.projekt.rule=Host(`rudi.${base_dn}`) && PathPrefix(`/projekt`)"
-
+    networks:
+      - traefik
+      - default
+      
+  # Selfdata
   selfdata:
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.selfdata.rule=Host(`rudi.${base_dn}`) && PathPrefix(`/selfdata`)"
+      - "traefik.http.routers.selfdata.entrypoints=websecure"
+      - "traefik.http.routers.selfdata.tls=true"
+      - "traefik.http.routers.selfdata.tls.certresolver=letsencrypt"
       - "traefik.http.services.selfdata.loadbalancer.server.scheme=https"
       - "traefik.http.services.selfdata.loadbalancer.server.port=8443"
-      - "traefik.http.routers.selfdata.rule=Host(`rudi.${base_dn}`) && PathPrefix(`/selfdata`)"
-
+    networks:
+      - traefik
+      - default
+      
+  # Portail
   portail:
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.portail.rule=Host(`rudi.${base_dn}`)"
+      - "traefik.http.routers.portail.entrypoints=websecure"
+      - "traefik.http.routers.portail.tls=true"
+      - "traefik.http.routers.portail.tls.certresolver=letsencrypt"
       - "traefik.http.services.portail.loadbalancer.server.scheme=http"
       - "traefik.http.services.portail.loadbalancer.server.port=8080"
-      - "traefik.http.routers.portail.rule=Host(`rudi.${base_dn}`)"
+      # Give portail lowest priority so specific routes match first
+      - "traefik.http.routers.portail.priority=1"
+    networks:
+      - traefik
+      - default
+      
+networks:
+  traefik:
+    external: true

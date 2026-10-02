@@ -26,7 +26,6 @@ cp .env .env.backup
 
 ```bash
 git pull origin main
-git lfs pull
 ```
 
 4. Remplacer la valeur de la variable ``base_dn`` dans votre fichier de configuration ``.env`` avec la valeur sauvegardée dans ``.env.backup``.

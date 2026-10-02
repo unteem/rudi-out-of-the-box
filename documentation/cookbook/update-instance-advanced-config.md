@@ -29,7 +29,6 @@ docker compose -f docker-compose-magnolia.yml \
 
 ```bash
 git pull origin main
-git lfs pull
 ```
 
 3. Remplacer la valeur de la variable ``base_dn`` dans votre fichier de configuration ``.env`` avec la valeur précédente.

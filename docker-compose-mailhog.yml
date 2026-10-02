@@ -1,0 +1,14 @@
+---
+name: rudiplatform
+
+services:
+  mailhog:
+    image: mailhog/mailhog
+    restart: always
+    environment:
+      MH_AUTH_FILE: /mailhog.auth
+      MH_STORAGE: maildir
+    volumes:
+      - ./config/mailhog/auth.txt:/mailhog.auth
+    profiles:
+      - portail

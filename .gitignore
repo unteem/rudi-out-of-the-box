@@ -2,3 +2,78 @@
 /config/konsult/custom_logo
 /config/konsult/style-override.css
 /postgresql_data_rudi
+
+# Dummy/demo data — stored externally (S3 or similar), not in git
+dummy-data/
+
+# Sensitive configuration files
+# .env contains both user config and generated secrets
+.env
+.passwords.env
+.env.local
+.env.smtp
+.env.dataverse.production
+.keystore-info.txt
+*.producer-credentials.env
+register-on-portal.sql
+
+# Generated SQL files (templates are kept in git)
+config/rudi-init/01-usr.sql
+!config/rudi-init/01-usr.sql.template
+config/acl/03-oauth-secrets.sql
+
+# Generated properties files (templates are kept in git)
+config/*/*.properties
+!config/*/*.properties.template
+
+# Backup directories
+config-backup-*
+
+# SSL certificates and keys (add your actual certs to separate secure storage)
+certs/*.pem
+certs/*.key
+certs/*.crt
+config/*/*.jks
+config/*/*.p12
+
+# Producer node manager admin credentials
+config/producer/manager.env
+
+# Magnolia activation keypair (contains private key)
+config/magnolia/default/magnolia-activation-keypair.properties
+
+# Database data (should be backed up separately)
+database-data/
+
+# Runtime data — created by deploy.sh on the server, never tracked
+data/
+
+# Traefik lets encrypt certs
+traefik/acme.json
+
+# Logs
+logs/
+*.log
+
+# Magnolia image build artifacts (unpacked WAR scaffolds — not needed in git)
+image/magnolia/new/
+image/magnolia/original/
+image/magnolia/upstream/
+image/magnolia/docroot/
+image/magnolia/modules/
+image/magnolia/META-INF/
+
+# Dataverse and Solr are pulled from official images — no local build
+image/dataverse/
+image/solr/
+
+# OS files
+.DS_Store
+Thumbs.db
+*~
+.swp
+
+# IDE
+.idea/
+.vscode/
+*.iml

@@ -1,19 +1,13 @@
 ---
 name: rudiplatform
 
-# Uncomment to add persistence between test run
-# volumes:
-#   postgresql_data:
-
 services:
   database:
     image: postgis/postgis:15-master
     restart: unless-stopped
-    ports:
-      - 35432:5432
     environment:
       - POSTGRES_USER=rudi
-      - POSTGRES_PASSWORD=Rud1R00B-db-rudi
+      - POSTGRES_PASSWORD=${DB_RUDI}
       - POSTGRES_DB=rudi
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB -h database"]
@@ -23,16 +17,13 @@ services:
       start_period: 500s
     volumes:
       - ./config/rudi-init/:/docker-entrypoint-initdb.d/
-      # Uncomment to add persistence between test run
-      # - postgresql_data:/var/lib/postgresql/data
+      - ./database-data/rudi:/var/lib/postgresql/data
     profiles:
       - portail
 
   registry:
     image: rudiplatform/rudi-microservice-registry:${rudi_version}
     hostname: registry.rudi.bzh
-    ports:
-      - 8761:8761
     volumes:
       - ./config/registry:/etc/rudi/config
       - ./data/registry:/opt/rudi/data
@@ -217,22 +208,7 @@ services:
     profiles:
       - portail
 
-  mailhog:
-    image: mailhog/mailhog
-    restart: always
-    environment:
-      MH_AUTH_FILE: /mailhog.auth
-      MH_STORAGE: maildir
-    volumes:
-      - ./config/mailhog/auth.txt:/mailhog.auth
-    profiles:
-      - portail
-    ports:
-      - "8025:8025"
-
   portail:
-    ports:
-      - 8088:8080
     image: rudiplatform/rudi-application-front-office:${rudi_version}
     depends_on:
       - gateway

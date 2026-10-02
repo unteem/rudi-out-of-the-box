@@ -11,6 +11,12 @@
 
 </div>
 
+## Avertissement de Sécurité ⚠️
+
+**IMPORTANT**: La configuration par défaut de RUDI Out-of-the-Box est conçue pour les tests en local **uniquement**. Elle contient des mots de passe et clés de démonstration qui ne doivent **jamais** être utilisés en production.
+
+Pour un déploiement en production sécurisé, consultez le guide : [Comment déployer RUDI Out-of-the-Box en production ?](./documentation/cookbook/roob-to-prod.md)
+
 ## Lancer Rudi en local 🖥️
 
 ### Avant de commencer 
@@ -19,7 +25,6 @@
 
 Pour faire tourner RUDI Out-Of-The-Box sur votre machine, vous aurez besoin de :
 - [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) - Pour récupérer les fichiers 
-- [Git LFS](https://git-lfs.com/) - Pour gérer les grands fichiers avec Git - [Guide d'installation sous Linux](https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage?platform=linux)
 - [Docker Engine](https://docs.docker.com/engine/install/) - Pour la containerisation
 - [Docker Compose](https://docs.docker.com/compose/install/) - Pour tout orchestrer [Guide d'installation sous Linux](https://docs.docker.com/compose/install/#plugin-linux-only)
 
@@ -38,8 +43,6 @@ Pour faire tourner RUDI Out-Of-The-Box sur votre machine, vous aurez besoin au m
 ```bash
 git clone https://github.com/rudi-platform/rudi-out-of-the-box.git
 cd rudi-out-of-the-box
-git lfs pull
-chmod -R 777 data
 chmod -R 755 config
 ```
 
@@ -139,16 +142,23 @@ Voici un aperçu de la structure des répertoires et fichiers du projet :
 └── .env : Exemple de fichier d'environnement
 ```
 
-## Procédures spécifiques
+## Déploiement en Production 🚀
 
-- [Comment passer une instance Roob en production ?](./documentation/cookbook/roob-to-prod.md)
-- [Comment mettre en place un certificat SSL pour traefik ?](./documentation/cookbook/treafik-certificat-ssl.md)
-- [Comment passer de traefik à Apache ?](./documentation/cookbook/treafik-to-apache.md)
-- [Comment configurer les logs ?](./documentation/cookbook/configuration-logs.md)
-- [Comment changer de host dans Magnolia ?](./documentation/cookbook/configuration-magnolia.md)
-- [Comment configurer l'envoi de mails ?](./documentation/cookbook/configuration-mail.md)
-- [Comment générer une clé privée persistée pour les certificats des JWT ?](./documentation/cookbook/configuration-acl-jwt.md)
+### Guide de déploiement
+- **[Comment déployer RUDI Out-of-the-Box en production ?](./documentation/cookbook/roob-to-prod.md)** — Guide étape par étape : génération des secrets, déploiement de la plateforme, nœuds producteurs, données de démonstration
+
+### Configuration et procédures spécifiques
 - [Comment faire persister mes données (RUDI, Dataverse, Magnolia) ?](./documentation/cookbook/data-persistence.md)
+- [Comment configurer l'envoi de mails ?](./documentation/cookbook/configuration-mail.md)
+- [Comment mettre en place un certificat SSL pour Traefik ?](./documentation/cookbook/treafik-certificat-ssl.md)
+- [Comment passer de Traefik à Apache ?](./documentation/cookbook/treafik-to-apache.md)
+- [Comment configurer les logs ?](./documentation/cookbook/configuration-logs.md)
+- [Comment configurer Magnolia CMS pour RUDI ?](./documentation/cookbook/configuration-magnolia.md)
+- [Comment configurer Dataverse et Solr pour RUDI ?](./documentation/cookbook/configuration-dataverse.md)
+- [Comment une donnée est-elle publiée sur le portail RUDI ?](./documentation/cookbook/cycle-de-vie-donnees.md)
+- [Comment déployer et déclarer un nœud producteur RUDI ?](./documentation/cookbook/configuration-producer-node.md)
+- [Comment initialiser les vocabulaires KOS (thèmes et licences) ?](./documentation/cookbook/configuration-kos.md)
+- [Comment générer une clé privée persistée pour les certificats des JWT ?](./documentation/cookbook/configuration-acl-jwt.md)
 - [Comment séparer le déploiement de Dataverse sur un autre serveur ?](./documentation/cookbook/server-dataverse.md)
 - [Comment séparer le déploiement d'un des microservices RUDI sur un autre serveur ?](./documentation/cookbook/server-microservice-rudi.md)
 - [Comment utiliser un serveur de base de données séparé ?](./documentation/cookbook/server-database.md)
@@ -157,6 +167,11 @@ Voici un aperçu de la structure des répertoires et fichiers du projet :
 - [Comment modifier le contenu du sitemap de mon instance RUDI ROOB ?](./documentation/cookbook/configuration-sitemap.md)
 - [Comment charger un script javascript personnalisé dans mon instance RUDI ROOB ?](./documentation/cookbook/configuration-custom-js.md)
 - [Comment mettre en place un SSO ?](./documentation/cookbook/configuration-sso.md)
+
+### Référence technique
+- [Architecture, routage URL, checklist sécurité](./PRODUCTION-DEPLOYMENT.md)
+- [Scripts de déploiement](./scripts/README.md)
+- [Dépannage](./TROUBLESHOOTING.md)
 
 ## Mettre à jour votre instance RUDI ROOB
 
@@ -180,6 +195,11 @@ En fonction des montées de version, des étapes supplémentaires peuvent être 
 | v3.3.13  | [Opération à effectuer pour la v3.3.13](./documentation/changelogs/v3.3.13.md) | <pre><ul><li> [Notes de version v3.3.10](https://github.com/rudi-platform/rudi-portal/releases/tag/v3.3.10) </li><li> [Notes de version v3.3.12](https://github.com/rudi-platform/rudi-portal/releases/tag/v3.3.12) </li><li> [Notes de version v3.3.13](https://github.com/rudi-platform/rudi-portal/releases/tag/v3.3.13) </li></ul></pre>|
 
 
+### Configuration Avancée
+- **[Configuration Dataverse](/.env.dataverse.example)** - Options de configuration pour Dataverse (S3, SMTP, DOI, etc.)
+- **[Configuration SMTP](/.env.smtp.example)** - Configuration de l'envoi d'emails
+- **[Dépannage](./TROUBLESHOOTING.md)** - Solutions aux problèmes courants
+
 ## L'écosystème Rudi (les autres dépôts de code)
 
 Le portail Rudi n'est qu'une partie de l'écosystème de la plateforme Rudi. Pour l'utiliser pleinement, réferez-vous aux autres dépôts de code de l'organisation:
@@ -202,6 +222,18 @@ Stockez et organisez vos données en toute sécurité.
 
 #### [Node Catalog 🗂️](https://github.com/rudi-platform/rudi-node-catalog)
 Décrivez et indexez vos jeux de données pour les rendre facilement trouvables.
+
+## Nouveautés de Sécurité 🔒
+
+Les dernières mises à jour ont considérablement amélioré la sécurité de RUDI :
+
+- **Génération automatique de clés** : Chaque déploiement génère ses propres clés RSA uniques
+- **Gestion des mots de passe par variables d'environnement** : Plus de mots de passe en dur dans les fichiers
+- **Templates de configuration** : Séparation des configurations sensibles et non-sensibles
+- **Scripts de déploiement sécurisés** : Automatisation de la génération des secrets
+- **Documentation complète** : Guide étape par étape pour la production
+
+Consultez [PRODUCTION-DEPLOYMENT.md](./PRODUCTION-DEPLOYMENT.md) pour tous les détails.
 
 ## Contribuer à Rudi
 

@@ -1,301 +1,373 @@
-# Comment passer une instance Roob en production ?
+# Comment déployer RUDI Out-of-the-Box en production ?
+
+_Cas d'usage_ : je veux déployer la plateforme RUDI sur un serveur de production
+avec un nœud producteur, en remplaçant les configurations de démonstration par des
+secrets générés de manière sécurisée.
+
+Deux chemins équivalents :
+
+- **Option A** : déploiement automatisé avec `scripts/deploy.sh`
+- **Option B** : les mêmes opérations, étape par étape
+
+Le déploiement part de bases vides. Les données de démonstration sont une
+[étape optionnelle](#données-de-démonstration-optionnel).
+
+---
 
 ## Prérequis
 
-- Serveur Linux (Ubuntu/Debian recommandé)
-- Docker et Docker Compose installés
-- Git pour récupérer le code source
-- Certificats SSL valides pour votre domaine
+### Serveur
 
-## Gestion des volumes persistants
+- Linux (Ubuntu 22.04 LTS ou Debian 12+)
+- 8 cœurs CPU (16 recommandés), 32 Go de RAM (64 Go recommandés), 500 Go SSD
+- Docker Engine + plugin Docker Compose
+- Git, OpenSSL, JDK Java (pour `keytool`), Python 3, curl
 
-Configurez des volumes Docker persistants pour les données importantes:
-- Dataverse
-- Magnolia
-- RUDI
-
-### Dataverse
-
-Le fichier ``docker-compose-dataverse.yml`` doit être modifié afin de rendre les volumes persistants pour les index Solr et la base de données PostgreSQL.
-
-#### Dataverse - Postgresql
-
-Créer dans le répertoire *rudi-out-of-the-box* un sous-répertoire *./database-data/dataverse*
-
-Copier le contenu du répertoire du conteneur ``/var/lib/postgresql/data/`` dans le répertoire ``./database-data/dataverse``.
-
-
-> ```bash 
-> docker compose cp postgres:/var/lib/postgresql/data/ ./database-data/dataverse
-> ```
-
-Exposer le volume des données pour la base de données en modifiant la section ``volumes``:
-
-```
-services:
-  postgres:
-    image: postgres:15.8
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "pg_isready"]
-      interval: 30s
-      timeout: 30s
-      retries: 5
-      start_period: 30s
-    environment:
-      - "LC_ALL=C.UTF-8"
-      - "POSTGRES_DB=dataverse"
-      - "POSTGRES_USER=dataverse"
-      - "POSTGRES_PASSWORD=Rud1R00B-db-dataverse"
-      - "POSTGRES_PORT=5432"
-    env_file:
-      - data/dataverse/.env
-    volumes:
-      - ./config/dataverse/dataverse-init/:/docker-entrypoint-initdb.d/
-      - ./database-data/dataverse:/var/lib/postgresql/data/
-    profiles:
-      - dataverse
+```bash
+sudo apt update && sudo apt upgrade -y
+curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh get-docker.sh
+sudo usermod -aG docker $USER && newgrp docker
+sudo apt install docker-compose-plugin git openssl openjdk-17-jdk python3 curl
+keytool -version
 ```
 
-Redémarrer le service (option docker compose: up -d)
+### DNS
 
-#### Dataverse - Index SolR
+Configurer les entrées DNS **avant de démarrer les services** : Traefik demande
+les certificats Let's Encrypt au premier démarrage (challenge HTTP-01).
 
-Le volume des index est déjà exposé dans la section *volumes* du service *solr*.
+| Nom d'hôte | Usage |
+|------------|-------|
+| `rudi.<domaine>` | Portail et API des microservices |
+| `dataverse.<domaine>` | Dataverse |
+| `magnolia.<domaine>` | CMS Magnolia |
+| `producteur.<domaine>` | Nœud producteur |
 
-### Magnolia
+---
 
-Le fichier ``docker-compose-magnolia.yml`` doit être modifié afin de rendre les volumes persistants pour les index et la base de données PostgreSQL.
+## Option A — Déploiement automatisé
 
-#### Magnolia - Postgresql
+### 1. Cloner le dépôt et configurer `.env`
 
-Créer dans le répertoire *rudi-out-of-the-box* un sous-répertoire *./database-data/magnolia*
-
-Copier le contenu du répertoire du conteneur ``/var/lib/postgresql/data/`` dans le répertoire ``./database-data/magnolia``.
-
-> ```bash 
-> docker compose cp magnolia-database:/var/lib/postgresql/data/ ./database-data/magnolia
-> ```
-
-Exposer le volume des données pour la base de données en modifiant la section ``volumes``:
-
-```
-services:
-  magnolia-database:
-    image: postgres:15.8
-    expose:
-      - 5432
-    #image: glregistry.boost.open.global/rennes-metropole/rudi/rudi/magnolia-postgres:rudi-4307-cms
-    environment:
-      - "POSTGRES_DB=magnolia"
-      - "POSTGRES_USER=magnolia"
-      - "POSTGRES_PASSWORD=Rud1R00B-db-magnolia"
-      - "POSTGRES_PORT=5432"
-    healthcheck:
-      test: ["CMD", "pg_isready"]
-      interval: 30s
-      timeout: 30s
-      retries: 5
-      start_period: 30s
-    volumes:
-      - ./config/magnolia-data/:/docker-entrypoint-initdb.d/
-      - ./database-data/magnolia:/var/lib/postgresql/data
-    profiles:
-      - magnolia
+```bash
+git clone https://github.com/rudi-platform/rudi-out-of-the-box.git
+cd rudi-out-of-the-box
+cp .env.example .env
+# Éditer .env : base_dn, rudi_version, dataverse_version, LETSENCRYPT_EMAIL
 ```
 
-#### Magnolia - Index
+### 2. Lancer le déploiement
 
-Le volume des index est déjà exposé dans la section *volumes* du service *magnolia*.
-
-### Portail
-
-Le fichier ``docker-compose-rudi.yml`` doit être modifié afin de rendre les volumes persistants pour la base de données PostgreSQL.
-
-#### Portail - Postgresql
-
-Créer dans le répertoire *rudi-out-of-the-box* un sous-répertoires *./database-data/rudi*
-
-Copier le contenu du répertoire du conteneur ``/var/lib/postgresql/data/`` dans le répertoire ``./database-data/rudi``.
-
-> ```bash 
-> docker compose cp database:/var/lib/postgresql/data/ ./database-data/rudi
-> ```
-
-Exposer le volume des données pour la base de données en modifiant la section ``volumes``:
-
-```
-services:
-  database:
-    image: postgres:15.8
-    environment:
-      - POSTGRES_USER=rudi
-      - POSTGRES_PASSWORD=rudi
-      - POSTGRES_DB=Rud1R00B-db-rudi
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB -h database"]
-      interval: 30s
-      timeout: 30s
-      retries: 5
-      start_period: 500s
-    volumes:
-      - ./config/rudi-init/:/docker-entrypoint-initdb.d/
-      - ./database-data/rudi:/var/lib/postgresql/data
-    profiles:
-      - portail
+```bash
+./scripts/deploy.sh
 ```
 
-**Attention :**
+Le script enchaîne les étapes 3 à 12 de l'Option B : répertoires, secrets,
+keystores, fichiers de configuration, Traefik, bases de données, Dataverse et
+Magnolia, initialisation de Dataverse, portail RUDI, secrets OAuth2.
 
-- Assurez-vous que les répertoires des volumes persistants ont les bonnes permissions pour éviter des problèmes d'accès.
+### 3. Terminer la configuration
 
+Ces étapes nécessitent une intervention et sont identiques à l'Option B :
 
-## Gestion des mots de passe
+1. [Configurer Magnolia](#étape-13--configurer-magnolia)
+2. [Créer le premier administrateur RUDI](#étape-14--créer-le-premier-administrateur-rudi)
+3. [Initialiser les vocabulaires KOS](#étape-15--initialiser-les-vocabulaires-kos)
+4. [Déployer le nœud producteur](#étape-16--déployer-le-nœud-producteur)
+5. [Vérifier la chaîne de publication](#étape-17--vérifier-la-chaîne-de-publication)
 
-Afin de pouvoir passer en production, il est nécessaire de modifier les mots de passe :
+---
 
-- Des bases de données
-- Des utilisateurs des microservices
-- Des utilisateurs Dataverse
-- Des utilisateurs Magnolia
+## Option B — Déploiement étape par étape
 
-### Mot de passe - Base de données
+> Docker Compose charge `.env` automatiquement. Dans le shell, charger les
+> variables avec `set -a; source .env; set +a` avant les commandes qui les
+> utilisent.
 
-#### Mot de passe - Base de données - Dataverse
+### Étape 1 — Cloner le dépôt
 
-Se connecter sur la base de données Dataverse.
-Modifier le mot de passe de l'utilisateur *dataverse* 
-Modifier le fichier ``docker-compose-dataverse.yml`` et notamment les variables d'environnement suivantes :
+```bash
+git clone https://github.com/rudi-platform/rudi-out-of-the-box.git
+cd rudi-out-of-the-box
+```
 
-- Dans le service ``postgres`` :
+### Étape 2 — Configurer `.env`
 
->      - "POSTGRES_PASSWORD=Rud1R00B-db-dataverse"
+```bash
+cp .env.example .env
+```
 
-- Dans le service ``dataverse`` :
+Renseigner :
 
->      - "DATAVERSE_DB_PASSWORD=Rud1R00B-db-dataverse"
+```
+base_dn=mondomaine.fr
+rudi_version=v3.3.13
+dataverse_version=6.9-noble
+LETSENCRYPT_EMAIL=admin@mondomaine.fr
+```
 
-#### Mot de passe - Base de données - Magnolia
+### Étape 3 — Créer les répertoires
 
-Se connecter sur la base de données Magnolia.
-Modifier le mot de passe de l'utilisateur *magnolia* 
+```bash
+mkdir -p data/{rudi,dataverse,magnolia,producer} data/solr/solr-data
+mkdir -p database-data/{rudi,dataverse,magnolia} traefik logs
+sudo chown -R 8983:8983 data/solr       # Solr tourne avec l'UID 8983
+sudo chown -R 5001:5001 data/producer   # rudinode tourne avec l'UID 5001
+```
 
-- Dans le service ``magnolia-database`` :
+### Étape 4 — Générer les secrets
 
->      - "POSTGRES_PASSWORD=Rud1R00B-db-magnolia"
+```bash
+./scripts/generate-passwords.sh
+```
 
-- Dans le service ``magnolia`` :
+Ajoute un bloc « Generated secrets » à la fin de `.env` : mots de passe des
+bases, secrets OAuth2 des microservices, mots de passe des keystores, mot de
+passe `dataverseAdmin`. **Sauvegarder `.env` de manière sécurisée** (par exemple
+`gpg -c .env`).
 
->      - "MAGNOLIA_BDD_PASSWORD=Rud1R00B-db-magnolia"
+### Étape 5 — Générer les keystores
 
-#### Mot de passe - Base de données - RUDI
+```bash
+./scripts/generate-ssl-keystores.sh
+```
 
-Se connecter sur la base de données RUDI.
-- Modifier le mot de passe des utilisateurs *rudi*, *acl*, *apigateway*, *kalim*, *konsent*, *kos*, *projekt*, *selfdata*, *strukture*
+| Keystore | Usage |
+|----------|-------|
+| `config/<service>/rudi-https-certificate.jks` | HTTPS interne entre microservices |
+| `config/acl/rudi-jwt.jks` | Signature des tokens JWT ([détails](./configuration-acl-jwt.md)) |
+| `config/konsent/rudi-consent.jks` | Signature des consentements |
+| `config/selfdata/rudi-selfdata.jks` | Chiffrement des données personnelles |
+| `config/apigateway/rudi-apigateway.jks` | Chiffrement des clés d'accès aux médias |
 
-- Dans le service ``database``, renseigner le nouveau mot de passe de l'utilisateur `rudi` :
+Un certificat auto-signé est créé si `certs/` est vide : il ne sert qu'au HTTPS
+interne, Traefik gère le TLS public. Les keystores applicatifs existants ne sont
+jamais écrasés : les régénérer rendrait illisibles les données déjà chiffrées.
 
->      - POSTGRES_PASSWORD="Rud1R00B-db-rudi"
+### Étape 6 — Préparer les fichiers de configuration
 
-Editer les fichier ``./config/<nom du micro service>/<nom du micro service>.properties`` et mettre à jour les propriétés ``spring.datasource.password=xxx`` avec les nouveaux mots de passe des utilisateurs concernés.
+```bash
+./scripts/prepare-database-init.sh
+./scripts/prepare-properties.sh
+```
 
-## Mot de passe - Utilisateurs
+Génère `config/rudi-init/01-usr.sql`, `config/acl/03-oauth-secrets.sql` et
+`config/<service>/<service>.properties` à partir des `.template` et de `.env`.
 
-### Mot de passe - Utilisateurs - Dataverse
+### Étape 7 — Préparer Traefik et le réseau Docker
 
-Pour modifier les mots de passe Dataverse, se référer à la documentation [documentation/cookbook/modifier-mot-de-passe-dataverse.md](https://github.com/rudi-platform/rudi-portal/blob/main/documentation/cookbook/modifier-mot-de-passe-dataverse.md)
- 
-### Mot de passe - Utilisateurs - Magnolia 
+```bash
+touch traefik/acme.json && chmod 600 traefik/acme.json
+docker network create traefik
+```
 
-Pour modifier les mots de passe Magnolia, se référer à la documentation [documentation/cookbook/modifier-mot-de-passe-magnolia.md](https://github.com/rudi-platform/rudi-portal/blob/main/documentation/cookbook/modifier-mot-de-passe-magnolia.md)
+### Étape 8 — Démarrer les bases de données
 
-### Mot de passe - Utilisateurs - Portail 
+```bash
+COMPOSE_ALL="-f docker-compose-magnolia.yml -f docker-compose-rudi.yml -f docker-compose-dataverse.yml -f docker-compose-network.yml"
 
-Les mots de passe des utilisateurs RUDI sont stockés dans la base de données Portail dans le schéma ``acl``.
+docker compose $COMPOSE_ALL up -d database dataverse-database magnolia-database
+sleep 60
+```
 
-Pour ce faire se référer à ``https://github.com/rudi-platform/rudi-portal/blob/main/documentation/cookbook/modifier-mot-de-passe-base.md``
+> `docker-compose-network.yml` porte le routage Traefik : sans lui, les
+> services ne sont pas joignables depuis l'extérieur.
 
-## Gestion des certificats
+### Étape 9 — Démarrer Dataverse, Solr et Magnolia
 
-## Gestion HTTPS
+Dataverse doit être initialisé **avant** le portail RUDI, dont les
+microservices ont besoin du token API Dataverse.
 
-Afin de passer en production, il est nécessaire de mettre en place un certificats SSL pour la communication avec le portail.
+```bash
+docker compose $COMPOSE_ALL --profile dataverse --profile magnolia up -d
+```
 
-Pour ce faire, se référrer à :
+Dataverse met 3 à 5 minutes à démarrer.
 
-- [Comment mettre en place un certificat SSL pour traefik ?](./treafik-certificat-ssl.md)
-- [Comment passer de traefik à Apache ?](./treafik-to-apache.md)
+### Étape 10 — Initialiser Dataverse
 
-## Gestion des Keystore
+```bash
+./scripts/init-dataverse.sh
+./scripts/prepare-properties.sh
+```
 
-Le portail RUDI comporte plusieurs KeyStore :
+Bootstrap, token API écrit dans `.env`, bloc de métadonnées `rudi`, collections
+`rudi_data`, `rudi_archive` et `rudi_media_data`. Le détail des commandes
+équivalentes est dans
+[Comment configurer Dataverse et Solr ?](./configuration-dataverse.md).
 
-- Les keystores SSL. 
-- Le keystore de chiffrement des consentements
-- Le keystore de chiffrement des données personnelles
-- Le keystore de chiffrement des clés d'accès aux données
-- Le keystore de signature des tokens JWT
+### Étape 11 — Démarrer le portail RUDI
 
-### Gestion du keystore JWT
+```bash
+docker compose $COMPOSE_ALL --profile "*" up -d
+```
 
-Pour configurer un keystore JWT persisté permettant la signature des tokens JWT, se référer à :
+Tant que l'étape 12 n'est pas faite, les microservices ne peuvent pas obtenir de
+token auprès d'ACL : des erreurs `[invalid_client]` dans les logs (kalim, par
+exemple) sont normales à ce stade.
 
-- [Comment générer une clé privée persistée pour les certificats des JWT ?](./configuration-acl-jwt.md)
+### Étape 12 — Appliquer les secrets OAuth2 des microservices
 
-### Gestion des Keystore - SSL
+Les migrations Flyway d'ACL créent les comptes des microservices avec un mot de
+passe par défaut. On les remplace par les secrets `MS_*` de `.env` une fois
+Flyway terminé :
 
-Ces keystores sont présents dans les répertoires ``./config/<nom du microservice>/``.
+```bash
+until docker exec rudiplatform-database-1 psql -U rudi -d rudi \
+  -c "SELECT 1 FROM acl_data.user_ WHERE login='kalim';" &>/dev/null; do
+  echo "Attente de Flyway..."; sleep 10
+done
 
-Il est nécessaire :
+docker exec -i rudiplatform-database-1 psql -U rudi -d rudi \
+  < config/acl/03-oauth-secrets.sql
 
-- de modifier le certificat présent dans les keystores en le remplaçant par celui obtenu pour le nom de domaine.
-- de mettre à jour les fichiers de propriétés  ``./config/<nom du microservice>/<nom du microservice>.properties``.
+docker compose -f docker-compose-rudi.yml restart \
+  acl kalim strukture konsult kos projekt selfdata konsent apigateway
+```
 
-> server.ssl.key-store-password=<mot de passe keystore>
+### Étape 13 — Configurer Magnolia
 
-> eureka.client.tls.key-password=<mot de passe keystore>
+Connexion initiale (`superuser` / `superuser`), changement de mot de passe,
+configuration de l'URL du portail : voir
+[Comment configurer Magnolia CMS ?](./configuration-magnolia.md).
 
-### Gestion du keystore de chiffrement des consentements
+La paire de clés d'activation de Magnolia est générée dans
+`config/magnolia/default/magnolia-activation-keypair.properties` (répertoire
+monté dans le conteneur). Elle contient une clé privée : la sauvegarder.
 
-Il est nécessaire :
+### Étape 14 — Créer le premier administrateur RUDI
 
-- de modifier le certificat présent dans le keystore ``rudi-konsent.jks`` en le remplaçant par celui obtenu pour le nom de domaine.
-- de mettre à jour les fichiers de propriétés  ``./config/konsent/konsent.properties``.
+```bash
+docker exec -it rudiplatform-database-1 psql -U rudi -d rudi
+```
 
-> rudi.pdf.sign.keyStorePassword=<mot de passe consentement>
+```sql
+INSERT INTO acl_data.user_ (uuid, company, firstname, lastname, login, password, type)
+VALUES (
+  gen_random_uuid(),
+  'monorganisation',
+  'Prénom',
+  'Nom',
+  'admin@mondomaine.fr',
+  crypt('MotDePasseSecurise123!', gen_salt('bf')),
+  'PERSON'
+);
 
-> rudi.pdf.sign.keyStoreKeyPassword=<mot de passe consentement>
+INSERT INTO acl_data.user_role (user_fk, role_fk)
+SELECT u.id, r.id
+FROM acl_data.user_ u, acl_data.role r
+WHERE u.login = 'admin@mondomaine.fr'
+  AND r.code = 'ADMINISTRATOR';
+```
 
-> rudi.consent.validate.sha.salt=<salt>
+L'extension `pgcrypto` (fonctions `crypt` et `gen_salt`) est installée par
+`config/rudi-init/02-extension.sql`.
 
-> rudi.consent.revoke.sha.salt=<salt>
+### Étape 15 — Initialiser les vocabulaires KOS
 
-> rudi.treatmentversion.publish.sha.salt=<salt>
+```bash
+./scripts/init-kos.sh --login admin@mondomaine.fr --password 'MotDePasseSecurise123!'
+```
 
-### Gestion du keystore des données personnelles
+Sans les thèmes et licences, le portail n'affiche pas les tuiles thématiques et
+kalim rejette les métadonnées. Voir
+[Comment initialiser les vocabulaires KOS ?](./configuration-kos.md).
 
-Il est nécessaire :
+### Étape 16 — Déployer le nœud producteur
 
-- de modifier le certificat présent dans le keystore ``rudi-selfdata.jks`` en le remplaçant par celui obtenu pour le nom de domaine.
-- de mettre à jour les fichiers de propriétés  ``./config/selfdata/selfdata.properties``.
+Le nœud est d'abord déclaré dans le portail (fournisseur, nœud, compte ROBOT),
+puis démarré avec les identifiants obtenus. Détail et équivalent manuel :
+[Comment déployer et déclarer un nœud producteur RUDI ?](./configuration-producer-node.md).
 
-> rudi.selfdata.matchingdata.keystore.keystore-password=<mot de passe>
+```bash
+# 1. Déclarer le nœud (écrit PRODUCER_* dans .env)
+./scripts/deploy-producer.sh \
+  --domain producteur.mondomaine.fr \
+  --login admin@mondomaine.fr \
+  --password 'MotDePasseSecurise123!' \
+  --label "Mon Organisation Productrice"
 
-### Gestion du keystore des clés d'accès aux données
+# 2. Démarrer le nœud
+docker compose -f docker-compose-producer.yml up -d
 
-Il est nécessaire :
+# 3. Remplacer le super-administrateur par défaut du manager
+SU=$(curl -s --json '{"usr": "admin", "pwd": "MotDePasseManager!"}' \
+  https://producteur.mondomaine.fr/manager/api/open/hash-credentials)
+echo "SU=$SU" > config/producer/manager.env
+docker compose -f docker-compose-producer.yml up -d producer-manager
+```
 
-- de modifier le certificat présent dans le keystore ``rudi-apigateway.jks`` en le remplaçant par celui obtenu pour le nom de domaine.
-- de mettre à jour les fichiers de propriétés  ``./config/apigateway/apigateway.properties``.
+Le manager est accessible sur `https://producteur.mondomaine.fr/manager/`.
 
-> encryption-key.jks.default-key-password=<mot de passe>
+### Étape 17 — Vérifier la chaîne de publication
+
+Publier un premier jeu de données de test depuis le nœud producteur et vérifier
+qu'il apparaît sur le portail : voir
+[Comment une donnée est-elle publiée sur le portail RUDI ?](./cycle-de-vie-donnees.md#publier-un-premier-jeu-de-données-de-test).
+
+---
+
+## Données de démonstration (optionnel)
+
+Les données de démonstration sont stockées hors du dépôt. Structure attendue :
+
+```
+dummy-data/
+├── rudi/           # dump PostgreSQL RUDI + scripts d'import
+├── dataverse/      # dump PostgreSQL Dataverse + fichiers des datasets
+└── magnolia/       # dump PostgreSQL Magnolia + datastore JCR
+```
+
+Placer ce dossier à la racine du dépôt, puis :
+
+```bash
+./scripts/import-data.sh --all        # tout importer
+./scripts/import-data.sh --rudi       # portail RUDI
+./scripts/import-data.sh --dataverse  # Dataverse
+./scripts/import-data.sh --magnolia   # Magnolia
+```
+
+> **Attention** : écrase les données existantes. À réserver à un déploiement
+> vierge ou à un environnement de test.
+
+---
+
+## Persistance et sauvegardes
+
+| Donnée | Emplacement |
+|--------|-------------|
+| Bases PostgreSQL | `database-data/{rudi,dataverse,magnolia}` |
+| Index Solr | `data/solr/solr-data` |
+| Contenu Magnolia (JCR) | `data/magnolia/repository` |
+| Secrets | `.env` |
+| Keystores | `config/*/*.jks` |
+| Clé d'activation Magnolia | `config/magnolia/default/magnolia-activation-keypair.properties` |
+
+Les données survivent aux `docker compose down`. Voir aussi
+[Comment faire persister mes données ?](./data-persistence.md).
+
+```bash
+docker exec rudiplatform-database-1 pg_dump -U rudi rudi \
+  | gzip > /backups/rudi-$(date +%Y%m%d).sql.gz
+docker exec rudiplatform-dataverse-database-1 pg_dump -U dataverse dataverse \
+  | gzip > /backups/dataverse-$(date +%Y%m%d).sql.gz
+docker exec rudiplatform-magnolia-database-1 pg_dump -U magnolia magnolia \
+  | gzip > /backups/magnolia-$(date +%Y%m%d).sql.gz
+
+tar czf /backups/secrets-$(date +%Y%m%d).tar.gz \
+  .env config/*/*.jks \
+  config/magnolia/default/magnolia-activation-keypair.properties
+```
+
+---
 
 ## Pour aller plus loin
 
-### Gestion des sauvegardes :
-
-N'oublier pas de mettre en place une politique de sauvegarde pour les bases de données et les index des différents services.
-
-### Surveillance et logs :
-
-N'oublier pas de mettre en place une configuration idoine des logs ainsi qu'une supervision des services.
+- [Architecture, routage et checklist de sécurité](../../PRODUCTION-DEPLOYMENT.md)
+- [Référence des scripts](../../scripts/README.md)
+- [Dépannage](../../TROUBLESHOOTING.md)
+- [Configuration SMTP](./configuration-mail.md)
+- [Mettre en place un SSO](./configuration-sso.md)
+- [Certificats SSL Traefik](./treafik-certificat-ssl.md)
+- [Remplacer Traefik par Apache](./treafik-to-apache.md)
+- [Logs](./configuration-logs.md)

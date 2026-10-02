@@ -15,7 +15,6 @@ Pour cela, sur le serveur *ROOB_BDD*, récupérer le projet ROOB
 ```bash
 git clone https://github.com/rudi-platform/rudi-out-of-the-box.git
 cd rudi-out-of-the-box
-git lfs pull
 chmod -R 777 data
 chmod -R 755 config
 ```
@@ -71,6 +70,8 @@ Modifier la propriété suivante pour les microservices qui utilisent la base de
 ``` properties
 spring.datasource.url=jdbc:postgresql://<ip_ou_hostname_ROOB_BDD>:5432/rudi
 ```
+
+> Les fichiers `config/<service>/<service>.properties` sont générés depuis les `.properties.template` par `./scripts/prepare-properties.sh` : modifier le `.template` puis relancer ce script, sinon la modification sera écrasée.
 
 Les fichiers concernés sont :
 * `acl.properties`

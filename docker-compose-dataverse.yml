@@ -3,12 +3,10 @@ name: rudiplatform
 
 services:
   dataverse-database:
-    ports:
-      - 35433:5432
     image: postgres:15.12-bookworm
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "pg_isready"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 30s
       timeout: 30s
       retries: 5
@@ -17,104 +15,55 @@ services:
       - "LC_ALL=C.UTF-8"
       - "POSTGRES_DB=dataverse"
       - "POSTGRES_USER=dataverse"
-      - "POSTGRES_PASSWORD=Rud1R00B-db-dataverse"
+      - "POSTGRES_PASSWORD=${DB_DATAVERSE}"
       - "POSTGRES_PORT=5432"
     volumes:
-      - ./config/dataverse-init/:/docker-entrypoint-initdb.d/
+      - ./database-data/dataverse:/var/lib/postgresql/data
 
   solr:
-    image: rudiplatform/dataverse-solr
-    build: ./image/solr
-    privileged: true
-    ports:
-      - "8983:8983"
+    image: solr:9.8.0
+    restart: unless-stopped
     environment:
-      - "DATAVERSE_HOST=dataverse"
-      - "SOLR_HOST=solr"
       - "SOLR_JAVA_MEM=-Xms1g -Xmx1g"
       - "SOLR_OPTS=-Dlog4j2.formatMsgNoLookups=true -Dsolr.jetty.request.header.size=65535"
+    command:
+      - "solr-precreate"
+      - "collection1"
+      - "/template"
     volumes:
-      - ./solr-tmp:/var/tmp
-      - ./data/solr/solr-data:/var/solr/data
+      - ./data/solr/solr-data:/var/solr
+      # Schéma Solr Dataverse + champs RUDI, copié dans le core à la première création
+      - ./config/solr/collection1:/template:ro
     profiles:
       - dataverse
 
-  dataverse-whoami:
-    image: "containous/whoami"
-
   dataverse:
-    image: rudiplatform/dataverse
-    build: ./image/dataverse
-    privileged: true
-    user:
-      "root"
-    ports:
-      - "4848:4848"
-      - "8081:8080"
+    image: gdcc/dataverse:${dataverse_version}
+    restart: unless-stopped
+    profiles:
+      - dataverse
     environment:
-      - "CVM_SERVER_NAME=CESSDA" #Optional
-      - "CVM_SERVER_URL=https://ns2.${base_dn}"
-      - "cvManager=http://"
-      - "WEBHOOK=/opt/payara/triggers/external-services.py"
-      - "CESSDA"
-      - "CLARIN"
-      - "aws_bucket_name"
-      - "aws_s3_profile"
-      - "aws_endpoint_url"
-      - "system_email"
-      - "mailhost"
-      - "mailuser"
-      - "no_reply_email"
-      - "smtp_password"
-      - "smtp_port"
-      - "socket_port"
-      - "federated_json_file"
-      - "bucketname_1"
-      - "minio_label_1"
-      - "minio_bucket_1"
-      - "bucketname_2"
-      - "minio_profile_1"
-      - "minio_label_2"
-      - "minio_bucket_2"
-      - "minio_profile_2"
-      - "LANG=en"
-      - "MAINLANG=fr"
-      - "BUNDLEPROPERTIES=Bundle.properties"
-      - "ADMIN_USER=dataverseAdmin"
-      - "ADMIN_EMAIL=admin@localhost"
-      - "MAIL_SERVER=mailrelay"
       - "DATAVERSE_DB_HOST=dataverse-database"
       - "DATAVERSE_DB_PORT=5432"
       - "DATAVERSE_DB_USER=dataverse"
-      - "DATAVERSE_DB_PASSWORD=Rud1R00B-db-dataverse"
+      - "DATAVERSE_DB_PASSWORD=${DB_DATAVERSE}"
       - "DATAVERSE_DB_NAME=dataverse"
-      - "PGPASSWORD"
-      - "DATAVERSE_SERVICE_HOST"
-      - "DATAVERSE_URL=dataverse:8080"
       - "SOLR_SERVICE_HOST=solr"
       - "SOLR_SERVICE_PORT=8983"
-      - "SOLR_LOCATION=solr:8983"
-      - "INIT_SCRIPTS_FOLDER=/opt/payara/init.d"
-      - "TWORAVENS_LOCATION=NOT INSTALLED"
-      - "RSERVE_HOST=localhost"
-      - "RSERVE_PORT=6311"
-      - "RSERVE_USER=rserve"
-      - "RSERVE_PASSWORD=rserve"
+      - "dataverse_solr_host=solr"
+      - "dataverse_solr_port=8983"
       - "dataverse_pid_providers=fake"
       - "dataverse_pid_fake_type=FAKE"
       - "dataverse_pid_fake_label=Fake DOI Provider"
       - "dataverse_pid_fake_authority=10.5072"
       - "dataverse_pid_fake_shoulder=FK2/"
-      - "dataverse_pid_default-provider=fake"
-      - "dataverse_files_storage-driver-id=file"
+      - "dataverse_pid_default__provider=fake"
+      - "dataverse_files_storage__driver__id=file"
       - "dataverse_files_file_type=file"
       - "dataverse_files_file_directory=/data"
-      - "doi_authority"
-      - "doi_provider"
-      - "doi_username"
-      - "doi_password"
-      - "dataciterestapiurlstring"
-      - "baseurlstring"
+      # API admin et builtin-users accessibles uniquement depuis le conteneur (localhost)
+      - "dataverse_api_blocked_endpoints=admin,builtin-users"
+      - "dataverse_api_blocked_policy=localhost-only"
     depends_on:
       - dataverse-database
       - solr
@@ -122,7 +71,3 @@ services:
       - ./data/dataverse/secrets:/secrets
       - ./data/dataverse/dataverse-files:/data
 
-volumes:
-  database-data:
-  solr-data:
-  dataverse-data:

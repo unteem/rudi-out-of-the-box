@@ -13,6 +13,20 @@ Afin de configurer le serveur de mail utilisé par ROOB, vous devez au préalabl
 * Utilisation du StartTLS
 * Utilisation du debug
 
+## Déploiement scripté : fichier `.env.smtp`
+
+Avec le déploiement scripté ([roob-to-prod.md](./roob-to-prod.md)), les propriétés
+mail des microservices sont générées à partir des variables `SMTP_*` :
+
+```bash
+cp .env.smtp.example .env.smtp
+# Renseigner SMTP_HOST, SMTP_PORT, SMTP_AUTH, SMTP_USERNAME, SMTP_PASSWORD, SMTP_STARTTLS, SMTP_FROM
+./scripts/prepare-properties.sh
+docker compose -f docker-compose-rudi.yml restart acl kalim projekt selfdata strukture
+```
+
+Sans `.env.smtp`, `prepare-properties.sh` configure `mailhog`.
+
 ## Modifier les fichiers de propriétés pour chaque microservice concerné
 
 Les microservices suivants utilisent l'envoi de mail :
@@ -23,6 +37,8 @@ Les microservices suivants utilisent l'envoi de mail :
 * Strukture
 
 Pour chaque microservice, modifier le fichier de configuration associé `config/<nomDuMicroservice>/<nomDuMicroservice>.properties`.
+
+> Les fichiers `config/<service>/<service>.properties` sont générés depuis les `.properties.template` par `./scripts/prepare-properties.sh` : modifier le `.template` puis relancer ce script, sinon la modification sera écrasée.
 
 Les propriétés concernés sont :
 

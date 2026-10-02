@@ -1,0 +1,132 @@
+---
+# Nœud producteur RUDI (image rudinode)
+#
+# Même découpage que rudi-node-container/docker-compose.yml : une base MongoDB
+# et les modules catalog, storage et manager, tous issus de l'image rudinode et
+# partageant le même volume /data (clés publiques, médias, logs, base).
+#
+# L'image tourne avec l'utilisateur rudiadm (UID/GID 5001) :
+#   mkdir -p data/producer && sudo chown -R 5001:5001 data/producer
+#
+# Routes publiques (https://${PRODUCER_DOMAIN}) :
+#   /catalog (et /api, redirigé) → catalog : API des métadonnées
+#   /storage                      → storage : fichiers de données
+#   /manager (et le reste)        → manager : interface d'administration (/manager/)
+#
+# Voir documentation/cookbook/configuration-producer-node.md
+
+name: rudiplatform
+
+x-rudinode: &rudinode
+  image: ${rudinode_image:-registry.aqmo.org/public-rudi/public-packages/rudinode}:${rudinode_version:-latest}
+  restart: unless-stopped
+  volumes:
+    - ./data/producer:/data
+  networks:
+    - producer-net
+
+x-rudinode-env: &rudinode-env
+  NODE_PUBLIC_URL: https://${PRODUCER_DOMAIN}
+  CATALOG_PUBLIC_URL: https://${PRODUCER_DOMAIN}
+  STORAGE_PUBLIC_URL: https://${PRODUCER_DOMAIN}
+  MANAGER_PUBLIC_URL: https://${PRODUCER_DOMAIN}
+  MONGODB: mongodb://producer-db:27017
+  # Variable lue par les scripts de démarrage de tous les modules ; vide = valeur par défaut
+  MANAGER_PUBKEY_DIR: ""
+  ENABLE_DB: "false"
+  ENABLE_CATALOG: "false"
+  ENABLE_STORAGE: "false"
+  ENABLE_MANAGER: "false"
+
+services:
+
+  producer-db:
+    <<: *rudinode
+    container_name: rudiplatform-producer-db
+    environment:
+      <<: *rudinode-env
+      ENABLE_DB: "true"
+      DB_LISTEN_ALL: "true"
+
+  producer-manager:
+    <<: *rudinode
+    container_name: rudiplatform-producer-manager
+    # Identifiants administrateur (SU=...), voir configuration-producer-node.md.
+    # Fichier créé vide par deploy-producer.sh. Sans SU, le super-administrateur
+    # est celui de la configuration par défaut de l'image : à remplacer.
+    env_file:
+      - ./config/producer/manager.env
+    environment:
+      <<: *rudinode-env
+      ENABLE_MANAGER: "true"
+      # Clés de signature des JWT manager → catalog/storage, conservées sur le volume :
+      # sinon elles sont régénérées à chaque recréation du conteneur et le catalog,
+      # qui garde l'ancienne clé publique en mémoire, rejette les requêtes (403).
+      SAFE_DIR: /data/safe/manager
+      CATALOG_LOCAL_URL: http://producer-catalog:3030
+      STORAGE_LOCAL_URL: http://producer-storage:3031
+    networks:
+      - producer-net
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.producer-manager.rule=Host(`${PRODUCER_DOMAIN}`)"
+      - "traefik.http.routers.producer-manager.entrypoints=websecure"
+      - "traefik.http.routers.producer-manager.tls=true"
+      - "traefik.http.routers.producer-manager.tls.certresolver=letsencrypt"
+      - "traefik.http.services.producer-manager.loadbalancer.server.port=3032"
+
+  producer-catalog:
+    <<: *rudinode
+    container_name: rudiplatform-producer-catalog
+    depends_on:
+      - producer-db
+      - producer-manager
+    environment:
+      <<: *rudinode-env
+      ENABLE_CATALOG: "true"
+      # Applique les migrations du schéma MongoDB au démarrage (obligatoire sur une base neuve)
+      CATALOG_MIGRATION_ACTIVE: "true"
+      PORTAL_URL: https://rudi.${base_dn}
+      # Compte ROBOT du nœud : son login est l'UUID du nœud déclaré dans strukture
+      PORTAL_USER: ${PRODUCER_NODE_UUID}
+      PORTAL_PASS: ${PRODUCER_PASSWORD_B64}
+    networks:
+      - producer-net
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.producer-catalog.rule=Host(`${PRODUCER_DOMAIN}`) && (PathPrefix(`/catalog`) || PathPrefix(`/api`))"
+      - "traefik.http.routers.producer-catalog.entrypoints=websecure"
+      - "traefik.http.routers.producer-catalog.tls=true"
+      - "traefik.http.routers.producer-catalog.tls.certresolver=letsencrypt"
+      - "traefik.http.services.producer-catalog.loadbalancer.server.port=3030"
+
+  producer-storage:
+    <<: *rudinode
+    container_name: rudiplatform-producer-storage
+    depends_on:
+      - producer-db
+      - producer-manager
+    environment:
+      <<: *rudinode-env
+      ENABLE_STORAGE: "true"
+    networks:
+      - producer-net
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.producer-storage.rule=Host(`${PRODUCER_DOMAIN}`) && PathPrefix(`/storage`)"
+      - "traefik.http.routers.producer-storage.entrypoints=websecure"
+      - "traefik.http.routers.producer-storage.tls=true"
+      - "traefik.http.routers.producer-storage.tls.certresolver=letsencrypt"
+      - "traefik.http.services.producer-storage.loadbalancer.server.port=3031"
+
+networks:
+  producer-net:
+    driver: bridge
+  traefik:
+    external: true

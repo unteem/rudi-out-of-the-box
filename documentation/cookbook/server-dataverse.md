@@ -15,9 +15,6 @@ Pour cela, sur le serveur *ROOB_DATAVERSE* récupérer le projet ROOB
 ```bash
 git clone https://github.com/rudi-platform/rudi-out-of-the-box.git
 cd rudi-out-of-the-box
-git lfs pull
-chmod -R 777 data
-chmod -R 755 config
 ```
 
 Conserver uniquement l'arborescence nécessaire pour `dataverse` :
@@ -25,16 +22,17 @@ Conserver uniquement l'arborescence nécessaire pour `dataverse` :
 ```
 ├── .env
 ├── config
-│   └── dataverse-init
+│   └── solr
 ├── data
-│   └── dataverse
+│   ├── dataverse
+│   └── solr
 ├── docker-compose-dataverse.yml
 ├── docker-compose-network.yml
-└── image
-    └── dataverse
+└── scripts
+    └── init-dataverse.sh
 ```
 
-Modifier `docker-compose-network.yml` : conserver uniquement les services `reverse-proxy`, `solr`  et `dataverse`.
+Modifier `docker-compose-network.yml` : conserver uniquement les services `reverse-proxy` et `dataverse`.
 
 Modifier le fichier `.env` tel qu'indiqué dans le [README](../../README.md)
 
@@ -64,6 +62,8 @@ Modifier la propriété suivante pour les microservices qui utilisent dataverse 
 dataverse.api.url=http://dataverse.<ROOB_DATAVERSE>/api
 ```
 
+> Les fichiers `config/<service>/<service>.properties` sont générés depuis les `.properties.template` par `./scripts/prepare-properties.sh` : modifier le `.template` puis relancer ce script, sinon la modification sera écrasée.
+
 Les fichiers concernés sont :
 * `apigateway.properties`
 * `kalim.properties`
@@ -76,14 +76,12 @@ Supprimer les répertoires et fichiers de dataverse :
 
 ```
 ├── config
-│   └── dataverse-init
-├── data
-│   └── dataverse
-├── docker-compose-network.yml
-└── image
-    └── dataverse
+│   └── solr
+└── data
+    ├── dataverse
+    └── solr
 ```
 
-Dans le fichier `docker-compose-network.yml` : supprimer les services `reverse-proxy`, `solr`  et `dataverse`.
+Dans le fichier `docker-compose-network.yml` : supprimer le service `dataverse`.
 
 Relancer les services.

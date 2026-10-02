@@ -1,1 +1,0 @@
-ALTER TABLE datafile ADD COLUMN IF NOT EXISTS retention_id BIGINT;

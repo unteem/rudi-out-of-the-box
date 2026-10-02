@@ -15,7 +15,6 @@ Pour cela, récupérer le projet ROOB sur le serveur *ROOB_APIGATEWAY*:
 ```bash
 git clone https://github.com/rudi-platform/rudi-out-of-the-box.git
 cd rudi-out-of-the-box
-git lfs pull
 chmod -R 777 data
 chmod -R 755 config
 ```
@@ -35,6 +34,8 @@ Modifier `docker-compose-network.yml` : conserver uniquement les services `rever
 Modifier `docker-compose-rudi.yml` : conserver uniquement le service `apigateway`.
 
 Modifier le fichier `.env` tel qu'indiqué dans le [README](../../README.md)
+
+> Les fichiers `config/<service>/<service>.properties` sont générés depuis les `.properties.template` par `./scripts/prepare-properties.sh` : modifier le `.template` puis relancer ce script, sinon la modification sera écrasée.
 
 Modifier la configuration de `apigateway` dans le fichier `./config/apigateway/apigateway.properties` pour que la valeur de la propriété `eureka.instance.hostname` corresponde au host de la machine hébergeant le service `registry` (*ROOB_RUDI*). 
 

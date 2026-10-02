@@ -1,0 +1,25 @@
+server.port=8761
+
+server.ssl.enabled=true
+server.ssl.key-store=file:/etc/rudi/config/rudi-https-certificate.jks
+server.ssl.key-store-password=${KEYSTORE_PASSWORD}
+server.ssl.key-store-type=PKCS12
+server.ssl.key-alias=rudi-https
+server.ssl.key-password=${server.ssl.key-store-password}
+trust.trust-all-certs=true
+
+spring.security.user.name=admin
+spring.security.user.password={noop}${ADMIN_REGISTRY}
+spring.security.user.roles=ADMINISTRATEUR
+
+eureka.renewalPercentThreshold=0.85
+eureka.server.enableSelfPreservation=true
+
+# Registry unique (mode autonome) : il ne s'enregistre pas auprès de lui-même et
+# ne réplique vers aucun pair. Le nom d'hôte doit correspondre à defaultZone pour
+# qu'Eureka ne se prenne pas pour un pair distinct.
+eureka.instance.hostname=registry
+eureka.instance.preferIpAddress=false
+eureka.client.register-with-eureka=false
+eureka.client.fetch-registry=false
+eureka.client.serviceURL.defaultZone=https://registry:8761/eureka/
