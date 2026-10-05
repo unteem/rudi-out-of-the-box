@@ -36,6 +36,9 @@ certs/*.crt
 config/*/*.jks
 config/*/*.p12
 
+# Listes de référence projekt personnalisées (l'exemple reste versionné)
+config/projekt/referentiels.json
+
 # Producer node manager admin credentials
 config/producer/manager.env
 

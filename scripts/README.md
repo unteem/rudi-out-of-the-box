@@ -196,6 +196,31 @@ Le script :
 
 ---
 
+## `init-projekt.sh`
+
+Synchronise les listes de référence du formulaire de réutilisation (type de
+réutilisation, échelle, public cible, accompagnement souhaité) avec l'API projekt.
+
+```bash
+# Valeurs lues dans config/projekt/referentiels.json, sinon dans
+# config/projekt/referentiels.example.json
+./scripts/init-projekt.sh --login admin@example.com --password MonMotDePasse
+
+# Afficher les changements sans les appliquer
+./scripts/init-projekt.sh --login admin@example.com --password MonMotDePasse --dry-run
+
+# Autre fichier
+./scripts/init-projekt.sh --login admin@example.com --password MonMotDePasse \
+  --file /chemin/referentiels.json
+```
+
+Les entrées sont comparées par `code` : création si absente, mise à jour du
+libellé, de l'ordre ou de l'état (`"closed": true`) sinon. Rien n'est supprimé ;
+les valeurs présentes sur le portail mais absentes du fichier sont signalées.
+Le script peut être relancé après chaque modification du fichier.
+
+---
+
 ## `deploy-producer.sh`
 
 Déclare un nœud producteur dans le portail RUDI via l'API (Strukture + ACL).
@@ -309,6 +334,7 @@ rudi-out-of-the-box/
 │   ├── selfdata/rudi-selfdata.jks             # (SENSIBLE)
 │   ├── apigateway/rudi-apigateway.jks         # (SENSIBLE)
 │   ├── rudi-init/01-usr.sql                   # Généré depuis le template
+│   ├── projekt/referentiels.json              # Listes de référence personnalisées (copie de l'exemple)
 │   └── magnolia/default/
 │       └── magnolia-activation-keypair.properties  # Écrit par Magnolia au premier démarrage (SENSIBLE)
 ```

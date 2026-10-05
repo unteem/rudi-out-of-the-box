@@ -73,8 +73,9 @@ Ces étapes nécessitent une intervention et sont identiques à l'Option B :
 1. [Configurer Magnolia](#étape-13--configurer-magnolia)
 2. [Créer le premier administrateur RUDI](#étape-14--créer-le-premier-administrateur-rudi)
 3. [Initialiser les vocabulaires KOS](#étape-15--initialiser-les-vocabulaires-kos)
-4. [Déployer le nœud producteur](#étape-16--déployer-le-nœud-producteur)
-5. [Vérifier la chaîne de publication](#étape-17--vérifier-la-chaîne-de-publication)
+4. [Définir les listes de référence des réutilisations](#étape-16--définir-les-listes-de-référence-des-réutilisations)
+5. [Déployer le nœud producteur](#étape-17--déployer-le-nœud-producteur)
+6. [Vérifier la chaîne de publication](#étape-18--vérifier-la-chaîne-de-publication)
 
 ---
 
@@ -273,7 +274,72 @@ Sans les thèmes et licences, le portail n'affiche pas les tuiles thématiques e
 kalim rejette les métadonnées. Voir
 [Comment initialiser les vocabulaires KOS ?](./configuration-kos.md).
 
-### Étape 16 — Déployer le nœud producteur
+### Étape 16 — Définir les listes de référence des réutilisations
+
+Le formulaire de déclaration d'une réutilisation propose quatre listes
+déroulantes que le portail ne pré-remplit pas (ou presque) : type de
+réutilisation, échelle, public cible et accompagnement souhaité. Le front
+n'offre pas d'écran pour les gérer : leurs valeurs sont définies dans un
+fichier JSON, puis envoyées à l'API projekt.
+
+```bash
+# 1. Adapter les valeurs (facultatif : sans ce fichier, l'exemple est utilisé)
+cp config/projekt/referentiels.example.json config/projekt/referentiels.json
+vi config/projekt/referentiels.json
+
+# 2. Prévisualiser puis appliquer
+./scripts/init-projekt.sh --login admin@mondomaine.fr --password 'MotDePasseSecurise123!' --dry-run
+./scripts/init-projekt.sh --login admin@mondomaine.fr --password 'MotDePasseSecurise123!'
+```
+
+Chaque entrée a un `code` (identifiant stable, 30 caractères maximum), un
+`label` (texte affiché) et un `order` (position dans la liste) :
+
+```json
+{
+  "types": [
+    { "code": "traitement", "label": "Traitement de données", "order": 1 },
+    { "code": "application", "label": "Application", "order": 2 }
+  ],
+  "territorial_scales": [ ... ],
+  "target_audiences": [ ... ],
+  "supports": [ ... ]
+}
+```
+
+Le script compare le fichier au portail par `code` : il crée les entrées
+absentes et met à jour celles dont le libellé ou l'ordre a changé. Il ne
+supprime rien, car des réutilisations peuvent déjà utiliser une valeur. Pour
+retirer un choix du formulaire, ajouter `"closed": true` à l'entrée. Pour
+modifier les listes plus tard, éditer le fichier et relancer le script.
+
+<details>
+<summary>Équivalent manuel (API projekt)</summary>
+
+```bash
+TOKEN=$(curl -s -X POST "https://rudi.$base_dn/authenticate" \
+  --data-urlencode "login=admin@mondomaine.fr" \
+  --data-urlencode 'password=MotDePasseSecurise123!' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['jwtToken'].replace('Bearer ',''))")
+API="https://rudi.$base_dn/projekt/v1"
+
+# Lister les valeurs existantes (ressources : types, territorial-scales,
+# target-audience, supports)
+curl -s -H "Authorization: Bearer $TOKEN" "$API/types?limit=1000"
+
+# Ajouter une valeur
+curl -s -X POST "$API/types" -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"code": "application", "label": "Application", "order": 2, "opening_date": "2026-01-01T00:00:00"}'
+
+# Modifier ou fermer une valeur : renvoyer l'objet complet avec son uuid
+# (PUT $API/<ressource>/<uuid>, sauf target-audience : PUT $API/target-audience)
+# en changeant label, order ou closing_date.
+```
+
+</details>
+
+### Étape 17 — Déployer le nœud producteur
 
 Le nœud est d'abord déclaré dans le portail (fournisseur, nœud, compte ROBOT),
 puis démarré avec les identifiants obtenus. Détail et équivalent manuel :
@@ -299,7 +365,7 @@ docker compose -f docker-compose-producer.yml up -d producer-manager
 
 Le manager est accessible sur `https://producteur.mondomaine.fr/manager/`.
 
-### Étape 17 — Vérifier la chaîne de publication
+### Étape 18 — Vérifier la chaîne de publication
 
 Publier un premier jeu de données de test depuis le nœud producteur et vérifier
 qu'il apparaît sur le portail : voir

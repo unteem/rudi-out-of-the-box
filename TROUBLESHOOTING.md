@@ -580,6 +580,24 @@ Voir [cycle-de-vie-donnees.md](documentation/cookbook/cycle-de-vie-donnees.md) e
 
 ---
 
+## Réutilisations
+
+### Listes déroulantes vides dans le formulaire de réutilisation
+
+**Symptôme** : « Type de réutilisation », « Échelle » ou « Public cible » ne
+proposent aucune valeur ; « Accompagnement souhaité » ne propose que « Aucun ».
+
+**Cause** : les migrations projekt ne remplissent pas ces listes de référence.
+
+**Solution** : définir les valeurs dans `config/projekt/referentiels.json`
+(copie de `referentiels.example.json`) puis lancer :
+```bash
+./scripts/init-projekt.sh --login <admin> --password '<mot de passe>'
+```
+Voir l'étape 16 de [roob-to-prod.md](documentation/cookbook/roob-to-prod.md).
+
+---
+
 ## Nœud producteur
 
 `scripts/deploy-producer.sh` déclare le nœud via l'API (fournisseur, nœud d'URL

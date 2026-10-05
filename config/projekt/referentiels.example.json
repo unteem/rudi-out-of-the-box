@@ -1,0 +1,27 @@
+{
+  "types": [
+    { "code": "traitement", "label": "Traitement de données", "order": 1 },
+    { "code": "application", "label": "Application", "order": 2 }
+  ],
+  "territorial_scales": [
+    { "code": "QUARTIER", "label": "Quartier", "order": 1 },
+    { "code": "COMMUNE", "label": "Commune", "order": 2 },
+    { "code": "METROPOLE", "label": "Métropole", "order": 3 },
+    { "code": "AUTRE", "label": "Autre", "order": 4 }
+  ],
+  "target_audiences": [
+    { "code": "CITOYEN", "label": "Citoyen", "order": 1 },
+    { "code": "ASSOCIATION", "label": "Association", "order": 2 },
+    { "code": "ENTREPRISE", "label": "Entreprise", "order": 3 },
+    { "code": "COLLEC", "label": "Collectivité Territoriale", "order": 4 },
+    { "code": "ORGANISME_PUBLIC", "label": "Organisme Public", "order": 5 },
+    { "code": "AUTRE", "label": "Autre", "order": 6 }
+  ],
+  "supports": [
+    { "code": "AUCUN", "label": "Aucun", "order": 1 },
+    { "code": "TECHNIQUE", "label": "Recherche d'aide technique", "order": 2 },
+    { "code": "DATA", "label": "Recherche de données", "order": 3 },
+    { "code": "PARTENAIRES", "label": "Recherche de partenaires", "order": 4 },
+    { "code": "EXPERTISE", "label": "Recherche d'expertise", "order": 5 }
+  ]
+}
