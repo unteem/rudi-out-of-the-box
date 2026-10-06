@@ -1,0 +1,21 @@
+meta {
+  name: Le compte attend-il sa validation ?
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{protocol}}://{{host}}/acl/v1/account/{{process.env.USER_LOGIN}}/is-created-not-validated
+  body: none
+  auth: none
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  true tant que le lien d'activation reçu par e-mail n'a pas été suivi.
+}

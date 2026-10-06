@@ -7,7 +7,10 @@
 #      collection racine, licences
 #   2. Écriture du token API de dataverseAdmin dans .env (DATAVERSE_API_TOKEN)
 #   3. Chargement du bloc de métadonnées RUDI (rudi.tsv, depuis rudi-portal au tag rudi_version)
-#   4. Création et publication des collections rudi_data, rudi_archive, rudi_media_data
+#   4. Création et publication des collections rudi_data, rudi_archive (blocs
+#      citation + rudi) et rudi_media_data (bloc citation)
+#   5. Facettes de recherche de rudi_data (thème, organisation productrice), lues par
+#      konsult pour la section « Rechercher par thématique » et les filtres du catalogue
 #
 # Idempotent : chaque étape déjà effectuée est ignorée.
 #
@@ -101,7 +104,7 @@ log_success "Dataverse prêt"
 # On appelle directement setup-all.sh du configbaker (au lieu de bootstrap.sh)
 # pour fixer le mot de passe de dataverseAdmin (-p=) et son email.
 
-log_info "[1/4] Bootstrap Dataverse (configbaker ${dataverse_version})..."
+log_info "[1/5] Bootstrap Dataverse (configbaker ${dataverse_version})..."
 API_TOKEN=""
 BLOCK_COUNT=$(dv http://localhost:8080/api/metadatablocks | grep -o '"name"' | wc -l)
 
@@ -139,7 +142,7 @@ fi
 
 # ─── 2. Token API dans .env ───────────────────────────────────────────────────
 
-log_info "[2/4] Token API..."
+log_info "[2/5] Token API..."
 if [ -n "$API_TOKEN" ]; then
   if grep -q "^DATAVERSE_API_TOKEN=" "$ENV_FILE"; then
     sed -i "s/^DATAVERSE_API_TOKEN=.*/DATAVERSE_API_TOKEN=${API_TOKEN}/" "$ENV_FILE"
@@ -159,7 +162,7 @@ fi
 
 # ─── 3. Bloc de métadonnées RUDI ──────────────────────────────────────────────
 
-log_info "[3/4] Bloc de métadonnées rudi..."
+log_info "[3/5] Bloc de métadonnées rudi..."
 if dv http://localhost:8080/api/metadatablocks/rudi | grep -q '"status":"OK"'; then
   log_warning "Bloc rudi déjà chargé — ignoré"
 else
@@ -181,7 +184,7 @@ fi
 
 # ─── 4. Collections RUDI ──────────────────────────────────────────────────────
 
-log_info "[4/4] Collections RUDI..."
+log_info "[4/5] Collections RUDI..."
 
 # Une collection ne peut être publiée que si la collection racine l'est
 if dv -H "X-Dataverse-key: $DATAVERSE_API_TOKEN" \
@@ -200,7 +203,7 @@ fi
 # Chaque étape est idempotente : une relance termine une collection
 # partiellement initialisée.
 create_collection() {
-  local alias=$1 name=$2 info result
+  local alias=$1 name=$2 blocks=$3 info result
 
   info=$(dv -H "X-Dataverse-key: $DATAVERSE_API_TOKEN" "http://localhost:8080/api/dataverses/$alias")
 
@@ -219,9 +222,9 @@ create_collection() {
   result=$(dv -X POST -H "X-Dataverse-key: $DATAVERSE_API_TOKEN" \
     -H "Content-type: application/json" \
     "http://localhost:8080/api/dataverses/$alias/metadatablocks" \
-    -d '["citation","rudi"]')
+    -d "$blocks")
   if ! echo "$result" | grep -q '"status":"OK"'; then
-    log_error "Échec de l'association des blocs citation+rudi à $alias : $result"
+    log_error "Échec de l'association des blocs $blocks à $alias : $result"
     exit 1
   fi
 
@@ -236,19 +239,40 @@ create_collection() {
     log_error "Échec de la publication de $alias : $result"
     exit 1
   fi
-  log_success "Collection $alias publiée (blocs citation + rudi)"
+  log_success "Collection $alias publiée (blocs $blocks)"
 }
 
-create_collection "rudi_data"       "RUDI Data"
-create_collection "rudi_archive"    "RUDI Archive"
-create_collection "rudi_media_data" "RUDI Media"
+# Les médias du portail (logos, images de projets) n'utilisent que le bloc
+# citation : les champs obligatoires du bloc rudi ne les concernent pas.
+create_collection "rudi_data"       "RUDI Data"    '["citation","rudi"]'
+create_collection "rudi_archive"    "RUDI Archive" '["citation","rudi"]'
+create_collection "rudi_media_data" "RUDI Media"   '["citation"]'
+
+# ─── 5. Facettes de recherche ─────────────────────────────────────────────────
+#
+# konsult lit les valeurs de ces champs dans les facettes de la recherche
+# Dataverse (show_facets) : sans elles, la liste des thèmes est vide et l'accueil
+# du portail reste en chargement. Dataverse ne renvoie que les facettes
+# configurées sur la collection. L'appel remplace la liste : il est idempotent.
+
+log_info "[5/5] Facettes de recherche de rudi_data..."
+RUDI_FACETS='["rudi_theme","rudi_keywords","rudi_producer_organization_name","rudi_temporal_spread_start_date","rudi_temporal_spread_end_date","rudi_producer_organization_id"]'
+RESULT=$(dv -X POST -H "X-Dataverse-key: $DATAVERSE_API_TOKEN" \
+  -H "Content-type: application/json" \
+  "http://localhost:8080/api/dataverses/rudi_data/facets" \
+  -d "$RUDI_FACETS")
+if ! echo "$RESULT" | grep -q '"status":"OK"'; then
+  log_error "Échec de la configuration des facettes de rudi_data : $RESULT"
+  exit 1
+fi
+log_success "Facettes de rudi_data : $RUDI_FACETS"
 
 echo ""
 echo "========================================="
 echo "✓ Dataverse initialisé pour RUDI"
 echo "========================================="
 echo ""
-log_info "Connexion : https://dataverse.${base_dn} — dataverseAdmin / DATAVERSE_ADMIN_PASSWORD (.env)"
+log_info "Connexion : https://${DATAVERSE_DOMAIN:-dataverse.${base_dn}} — dataverseAdmin / DATAVERSE_ADMIN_PASSWORD (.env)"
 echo ""
 if [ -n "$API_TOKEN" ]; then
   log_info "Le token a changé : regénérer les propriétés RUDI puis (re)démarrer les microservices :"

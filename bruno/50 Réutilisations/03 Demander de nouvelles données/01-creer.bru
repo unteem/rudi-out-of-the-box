@@ -1,0 +1,39 @@
+meta {
+  name: Créer la demande
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{protocol}}://{{host}}/projekt/v1/projects/{{projectUuid}}/new-dataset-requests
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "object_type": "NewDatasetRequest",
+    "title": "Données souhaitées",
+    "description": "Description des données recherchées pour la réutilisation.",
+    "new_dataset_request_status": "DRAFT"
+  }
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/03-utilisateur");
+  if (!bru.getVar("projectUuid") && bru.getProcessEnv("PROJECT_UUID")) { bru.setVar("projectUuid", bru.getProcessEnv("PROJECT_UUID")); }
+}
+
+script:post-response {
+  if (res.status === 200) { bru.setVar("newDatasetRequestUuid", res.body.uuid); bru.setVar("newDatasetRequestJson", JSON.stringify(res.body)); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : utilisateur (connexion automatique avant la requête).
+}

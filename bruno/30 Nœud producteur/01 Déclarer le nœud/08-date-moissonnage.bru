@@ -1,0 +1,30 @@
+meta {
+  name: Mettre à jour la date de moissonnage du nœud
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{protocol}}://{{host}}/strukture/v1/providers/{{providerUuid}}/nodes/{{nodeUuid}}?lastHarvestingDate={{now}}
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/01-administrateur");
+  if (!bru.getVar("providerUuid") && bru.getProcessEnv("PROVIDER_UUID")) { bru.setVar("providerUuid", bru.getProcessEnv("PROVIDER_UUID")); }
+  if (!bru.getVar("nodeUuid") && bru.getProcessEnv("NODE_LOGIN")) { bru.setVar("nodeUuid", bru.getProcessEnv("NODE_LOGIN")); }
+  bru.setVar("now", new Date().toISOString());
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : administrateur (connexion automatique avant la requête).
+
+  Date du dernier moissonnage du nœud par kalim (lastHarvestingDate).
+}

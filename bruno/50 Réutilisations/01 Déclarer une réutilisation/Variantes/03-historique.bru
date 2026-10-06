@@ -1,0 +1,25 @@
+meta {
+  name: Historique de la demande
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{protocol}}://{{host}}/projekt/v1/projects/tasks/{{taskId}}/historic?asAdmin=true
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/02-animateur");
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : animateur (connexion automatique avant la requête).
+}

@@ -72,11 +72,10 @@ rudi.konsent.scheduler.consent.delay=60000
 rudi.konsent.scheduler.revoke.delay=60000
 rudi.konsent.scheduler.treatment.delay=60000
 
-# Min IO, stockage des PDF-A
-# TODO this need to be configured
-rudi.documentstorage.endPoint=https://minio.localhost
-rudi.documentstorage.bucketName=roob
-rudi.documentstorage.identity=roob
-rudi.documentstorage.credential=roob
-rudi.documentstorage.trustAllCerts=True
+# Stockage S3 des PDF-A de consentement signés (KONSENT_S3_* dans .env)
+rudi.documentstorage.endPoint=${KONSENT_S3_ENDPOINT}
+rudi.documentstorage.bucketName=${KONSENT_S3_BUCKET}
+rudi.documentstorage.identity=${KONSENT_S3_ACCESS_KEY}
+rudi.documentstorage.credential=${KONSENT_S3_SECRET_KEY}
+rudi.documentstorage.trustAllCerts=${KONSENT_S3_TRUST_ALL_CERTS}
 

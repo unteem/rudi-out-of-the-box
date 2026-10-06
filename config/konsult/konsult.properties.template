@@ -66,9 +66,9 @@ cms.url=http://magnolia:8080
 
 # FRONT
 
-front.urlServer=http://rudi.${base_dn}/
-front.teamName=Roob
-front.projectName=Roob
+front.urlServer=https://rudi.${base_dn}/
+front.teamName=${RUDI_TEAM_NAME}
+front.projectName=${RUDI_PROJECT_NAME}
 
 customization.base-directory=/etc/rudi/config/
 robots.base-directory=/etc/rudi/config/

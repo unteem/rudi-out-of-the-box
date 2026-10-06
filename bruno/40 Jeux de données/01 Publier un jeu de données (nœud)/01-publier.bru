@@ -1,0 +1,101 @@
+meta {
+  name: Publier la métadonnée
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{protocol}}://{{host}}/kalim/v1/resources
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {}
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/04-noeud-robot");
+  if (!bru.getVar("organizationUuid") && bru.getProcessEnv("ORGANIZATION_UUID")) { bru.setVar("organizationUuid", bru.getProcessEnv("ORGANIZATION_UUID")); }
+  function uuidv4() {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+      const r = (Math.random() * 16) | 0;
+      return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+    });
+  }
+  function buildMetadata(restricted) {
+    const now = new Date().toISOString();
+    if (!bru.getVar("globalId")) { bru.setVar("globalId", uuidv4()); }
+    if (!bru.getVar("mediaId")) { bru.setVar("mediaId", uuidv4()); }
+    const producerHost = bru.getEnvVar("producerHost");
+    return {
+      global_id: bru.getVar("globalId"),
+      resource_title: (bru.getProcessEnv("DATASET_TITLE") || "Jeu de données de test") + (restricted ? " (restreint)" : ""),
+      synopsis: [{ lang: "fr", text: "Jeu de données publié depuis la collection Bruno de ROOB." }],
+      summary: [{ lang: "fr", text: "Jeu de données de test : population de deux communes, au format CSV." }],
+      theme: bru.getProcessEnv("DATASET_THEME") || "economy",
+      keywords: ["test", "bruno"],
+      producer: {
+        organization_id: bru.getVar("organizationUuid"),
+        organization_name: bru.getProcessEnv("ORGANIZATION_NAME")
+      },
+      contacts: [{
+        contact_id: uuidv4(),
+        contact_name: "Contact " + bru.getProcessEnv("ORGANIZATION_NAME"),
+        email: bru.getProcessEnv("PRODUCER_EMAIL")
+      }],
+      available_formats: [{
+        media_type: "FILE",
+        media_id: bru.getVar("mediaId"),
+        media_name: "donnees.csv",
+        media_dates: { created: now, updated: now },
+        connector: {
+          url: "https://" + producerHost + "/storage/download/" + bru.getVar("mediaId"),
+          interface_contract: "dwnl"
+        },
+        file_type: "text/csv",
+        file_size: 50,
+        file_encoding: "UTF-8",
+        checksum: { algo: "SHA-256", hash: "1103bd90088002bd690db003ed85fe51dbeba1fd5d53f6eafb0ef389b9c3b6b5" },
+        file_storage_status: "available",
+        file_status_update: now
+      }],
+      resource_languages: ["fr"],
+      dataset_dates: { created: now, updated: now },
+      storage_status: "online",
+      access_condition: {
+        confidentiality: { restricted_access: !!restricted, gdpr_sensitive: false },
+        licence: { licence_type: "STANDARD", licence_label: bru.getProcessEnv("DATASET_LICENCE") || "etalab-2.0" }
+      },
+      metadata_info: {
+        api_version: "1.4.2",
+        metadata_dates: { created: now, updated: now, published: now },
+        metadata_provider: {
+          organization_id: bru.getProcessEnv("NODE_LOGIN"),
+          organization_name: bru.getProcessEnv("PRODUCER_LABEL")
+        }
+      }
+    };
+  }
+  bru.setVar("globalId", null);
+  bru.setVar("mediaId", null);
+  req.setBody(buildMetadata(false));
+}
+
+script:post-response {
+  if (res.status === 200) { bru.setVar("integrationRequestUuid", res.body); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : nœud producteur (connexion automatique avant la requête).
+
+  Génère globalId et mediaId. Thème (DATASET_THEME) et licence
+  (DATASET_LICENCE) : codes des vocabulaires KOS. Renvoie l'UUID de la
+  demande d'intégration.
+}

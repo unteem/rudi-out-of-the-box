@@ -1,0 +1,44 @@
+meta {
+  name: Créer un utilisateur (administrateur)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{protocol}}://{{host}}/acl/v1/users
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "login": "{{process.env.USER_LOGIN}}",
+    "password": "{{process.env.USER_PASSWORD}}",
+    "lastname": "Utilisateur",
+    "firstname": "Test",
+    "type": "PERSON",
+    "roles": [
+      { "uuid": "fcd893fc-a2f5-4519-8454-91a881554d1d", "code": "USER" }
+    ]
+  }
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/01-administrateur");
+}
+
+script:post-response {
+  if (res.status === 200) { bru.setVar("userUuid", res.body.uuid); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : administrateur (connexion automatique avant la requête).
+
+  Création directe, sans e-mail d'activation (rôle USER).
+}

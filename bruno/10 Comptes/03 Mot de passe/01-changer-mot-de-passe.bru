@@ -1,0 +1,34 @@
+meta {
+  name: Changer son mot de passe
+  type: http
+  seq: 1
+}
+
+put {
+  url: {{protocol}}://{{host}}/acl/v1/users/{{process.env.USER_LOGIN}}/password
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "oldPassword": "{{process.env.USER_PASSWORD}}",
+    "newPassword": "{{process.env.USER_NEW_PASSWORD}}"
+  }
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/03-utilisateur");
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : utilisateur (connexion automatique avant la requête).
+
+  Penser à reporter USER_NEW_PASSWORD dans USER_PASSWORD de .env ensuite.
+}

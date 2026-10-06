@@ -1,0 +1,26 @@
+meta {
+  name: Lister les nœuds du fournisseur
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{protocol}}://{{host}}/strukture/v1/providers/{{providerUuid}}/nodes
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/01-administrateur");
+  if (!bru.getVar("providerUuid") && bru.getProcessEnv("PROVIDER_UUID")) { bru.setVar("providerUuid", bru.getProcessEnv("PROVIDER_UUID")); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : administrateur (connexion automatique avant la requête).
+}

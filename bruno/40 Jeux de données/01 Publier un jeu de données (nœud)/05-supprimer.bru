@@ -1,0 +1,28 @@
+meta {
+  name: Supprimer la métadonnée
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{protocol}}://{{host}}/kalim/v1/resources/{{globalId}}
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/04-noeud-robot");
+  if (!bru.getVar("globalId") && bru.getProcessEnv("DATASET_GLOBAL_ID")) { bru.setVar("globalId", bru.getProcessEnv("DATASET_GLOBAL_ID")); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : nœud producteur (connexion automatique avant la requête).
+
+  Dépublie le jeu de données (déplacé dans la collection Dataverse rudi_archive).
+}

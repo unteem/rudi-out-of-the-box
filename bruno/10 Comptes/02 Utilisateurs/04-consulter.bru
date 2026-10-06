@@ -1,0 +1,30 @@
+meta {
+  name: Consulter un utilisateur
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{protocol}}://{{host}}/acl/v1/users/{{userUuid}}
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/01-administrateur");
+  if (!bru.getVar("userUuid") && bru.getProcessEnv("USER_UUID")) { bru.setVar("userUuid", bru.getProcessEnv("USER_UUID")); }
+}
+
+script:post-response {
+  if (res.status === 200) { bru.setVar("userJson", JSON.stringify(res.body)); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : administrateur (connexion automatique avant la requête).
+}

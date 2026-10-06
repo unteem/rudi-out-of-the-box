@@ -1,0 +1,18 @@
+meta {
+  name: Vérifier le jeton de réinitialisation
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{protocol}}://{{host}}/acl/v1/account/change-password/check-token?token={{process.env.PASSWORD_RESET_TOKEN}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+

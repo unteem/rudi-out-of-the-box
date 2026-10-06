@@ -1,0 +1,26 @@
+meta {
+  name: Suis-je administrateur de l'organisation ?
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{protocol}}://{{host}}/strukture/v1/organizations/{{organizationUuid}}/is-administrator
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/03-utilisateur");
+  if (!bru.getVar("organizationUuid") && bru.getProcessEnv("ORGANIZATION_UUID")) { bru.setVar("organizationUuid", bru.getProcessEnv("ORGANIZATION_UUID")); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : utilisateur (connexion automatique avant la requête).
+}

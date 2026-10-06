@@ -1,0 +1,22 @@
+meta {
+  name: Jeux de données du même thème
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{protocol}}://{{host}}/konsult/v1/datasets/{{globalId}}/metadatas-with-same-theme?limit=5
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  if (!bru.getVar("globalId") && bru.getProcessEnv("DATASET_GLOBAL_ID")) { bru.setVar("globalId", bru.getProcessEnv("DATASET_GLOBAL_ID")); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+

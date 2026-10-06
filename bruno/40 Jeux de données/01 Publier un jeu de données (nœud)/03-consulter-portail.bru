@@ -1,0 +1,23 @@
+meta {
+  name: Consulter la métadonnée sur le portail
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{protocol}}://{{host}}/konsult/v1/datasets/{{globalId}}/metadatas
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  if (!bru.getVar("globalId") && bru.getProcessEnv("DATASET_GLOBAL_ID")) { bru.setVar("globalId", bru.getProcessEnv("DATASET_GLOBAL_ID")); }
+}
+
+tests {
+  test("visible sur le portail", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.global_id).to.equal(bru.getVar("globalId"));
+  });
+}
+

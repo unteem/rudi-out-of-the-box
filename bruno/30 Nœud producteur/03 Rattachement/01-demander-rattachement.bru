@@ -1,0 +1,32 @@
+meta {
+  name: Demander le rattachement
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{protocol}}://{{host}}/node/v1/linked-producers/request/{{organizationUuid}}
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/04-noeud-robot");
+  if (!bru.getVar("organizationUuid") && bru.getProcessEnv("ORGANIZATION_UUID")) { bru.setVar("organizationUuid", bru.getProcessEnv("ORGANIZATION_UUID")); }
+}
+
+script:post-response {
+  if (res.status === 200 && typeof res.body === "string") { bru.setVar("linkedProducerUuid", res.body); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : nœud producteur (connexion automatique avant la requête).
+
+  Renvoie l'UUID du rattachement (linkedProducerUuid).
+}

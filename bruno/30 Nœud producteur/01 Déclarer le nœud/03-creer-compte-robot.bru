@@ -1,0 +1,43 @@
+meta {
+  name: Créer le compte ROBOT du nœud
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{protocol}}://{{host}}/acl/v1/users
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "login": "{{nodeUuid}}",
+    "password": "{{process.env.NODE_PASSWORD}}",
+    "lastname": "{{process.env.PRODUCER_LABEL}}",
+    "firstname": "Nœud producteur",
+    "company": "{{process.env.PRODUCER_LABEL}}",
+    "type": "ROBOT",
+    "roles": [
+      { "uuid": "af8cbc17-b7e0-43c1-92e2-f42a1d18e103", "code": "PROVIDER" }
+    ]
+  }
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/01-administrateur");
+  if (!bru.getVar("nodeUuid") && bru.getProcessEnv("NODE_LOGIN")) { bru.setVar("nodeUuid", bru.getProcessEnv("NODE_LOGIN")); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : administrateur (connexion automatique avant la requête).
+
+  Le login est l'UUID du nœud : strukture et kalim retrouvent le nœud par ce
+  login. Reporter ensuite nodeUuid dans NODE_LOGIN de .env.
+}

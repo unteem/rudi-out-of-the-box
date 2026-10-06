@@ -1,0 +1,26 @@
+meta {
+  name: Organisations d'un utilisateur
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{protocol}}://{{host}}/strukture/v1/organizations?user_uuid={{userUuid}}
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/01-administrateur");
+  if (!bru.getVar("userUuid") && bru.getProcessEnv("USER_UUID")) { bru.setVar("userUuid", bru.getProcessEnv("USER_UUID")); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : administrateur (connexion automatique avant la requête).
+}

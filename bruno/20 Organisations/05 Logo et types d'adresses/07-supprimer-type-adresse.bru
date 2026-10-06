@@ -1,0 +1,25 @@
+meta {
+  name: Supprimer un type d'adresse
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{protocol}}://{{host}}/strukture/v1/addressRoles/{{addressRoleUuid}}
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/01-administrateur");
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : administrateur (connexion automatique avant la requête).
+}

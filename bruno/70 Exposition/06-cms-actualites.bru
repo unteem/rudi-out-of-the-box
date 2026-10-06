@@ -1,0 +1,21 @@
+meta {
+  name: Actualités (rendu Magnolia)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{protocol}}://{{host}}/konsult/v1/cms/news/renders/rudi-news@news?categories=/rudi/news/a-la-une&locale=fr&limit=5
+  body: none
+  auth: none
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Vide tant qu'aucune actualité n'est publiée dans Magnolia.
+}

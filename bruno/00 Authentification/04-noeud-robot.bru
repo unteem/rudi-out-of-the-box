@@ -1,0 +1,47 @@
+meta {
+  name: Se connecter (nœud producteur, compte ROBOT)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{protocol}}://{{host}}/oauth2/token
+  body: formUrlEncoded
+  auth: basic
+}
+
+auth:basic {
+  username: {{process.env.NODE_LOGIN}}
+  password: {{process.env.NODE_PASSWORD}}
+}
+
+body:form-urlencoded {
+  grant_type: client_credentials
+  username: {{process.env.NODE_LOGIN}}
+  password: {{process.env.NODE_PASSWORD}}
+}
+
+script:post-response {
+  if (res.status === 200 && res.body && res.body.access_token) {
+    bru.setVar("jwtToken", res.body.access_token);
+    bru.setVar("jwtRole", "noeud");
+  }
+}
+
+tests {
+  test("jeton obtenu", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.access_token).to.be.a("string");
+  });
+}
+
+docs {
+  Jeton du nœud producteur, obtenu comme le fait le catalog du nœud
+  (OAuth2 client_credentials, authentification Basic).
+
+  NODE_LOGIN est l'UUID du nœud (PRODUCER_NODE_UUID du .env du dépôt),
+  NODE_PASSWORD le mot de passe du compte ROBOT (PRODUCER_PASSWORD).
+
+  Ce jeton donne accès aux routes /node/v1/... (demandes d'organisation et de
+  rattachement) et /kalim/v1/resources (publication de métadonnées).
+}

@@ -1,0 +1,49 @@
+meta {
+  name: Demander la création de l'organisation
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{protocol}}://{{host}}/node/v1/organizations/request
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "organization_id": "{{organizationUuid}}",
+    "organization_name": "{{process.env.ORGANIZATION_NAME}}",
+    "organization_summary": "Organisation productrice déclarée depuis le nœud",
+    "organization_url": "https://{{producerHost}}",
+    "organization_opening_date": "{{now}}"
+  }
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/04-noeud-robot");
+  function uuidv4() {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+      const r = (Math.random() * 16) | 0;
+      return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+    });
+  }
+  bru.setVar("organizationUuid", uuidv4());
+  bru.setVar("now", new Date().toISOString());
+}
+
+script:post-response {
+  if (res.status === 200 && typeof res.body === "string") { bru.setVar("organizationUuid", res.body); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : nœud producteur (connexion automatique avant la requête).
+
+  Génère l'UUID de l'organisation (organizationUuid). Nom : ORGANIZATION_NAME de .env.
+}

@@ -536,6 +536,20 @@ docker exec rudiplatform-dataverse-1 curl -s http://localhost:8080/api/admin/set
 | `Unable to write GOAWAY … Connection reset by peer` | Le client a fermé la connexion HTTP/2. |
 | `GRIZZLY0013 … Unknown protocol` suivi de caractères binaires | Une requête HTTPS est arrivée sur le port HTTP 8080. Dataverse ne publie plus de port sur l'hôte : seul Traefik (en HTTP) doit l'appeler. |
 
+### Accueil : « Rechercher par thématique » reste en chargement, thèmes affichés `[code]`
+
+**Cause** : les facettes de recherche de la collection `rudi_data` ne sont pas
+configurées. konsult ne récupère alors aucun thème, et le front reste en
+chargement quand la liste est vide.
+
+**Solution** : relancer `./scripts/init-dataverse.sh` (étape 5, idempotente) ou
+appliquer l'étape 5 de
+[configuration-dataverse.md](documentation/cookbook/configuration-dataverse.md),
+puis recharger la page d'accueil. Vérifier :
+```bash
+curl -s "https://rudi.<base_dn>/konsult/v1/datasets/metadatas/facets?facets=theme"
+```
+
 ### Kalim ne crée pas de jeux de données / un jeu de données n'apparaît pas
 
 **Cause** : l'initialisation de Dataverse est incomplète. `scripts/init-dataverse.sh`
@@ -624,6 +638,50 @@ d'administration du nœud (node manager). Si les identifiants ROBOT sont incorre
 relancez `./scripts/deploy-producer.sh` puis redémarrez les conteneurs du nœud.
 
 Voir [configuration-producer-node.md](documentation/cookbook/configuration-producer-node.md).
+
+### Portail : la fenêtre « Accepter la demande » ne propose que « Annuler »
+
+**Symptôme** : en animateur, dans « Mes notifications », l'action « Accepter la
+demande » d'une demande d'organisation ouvre une fenêtre sans bouton de
+validation.
+
+**Cause** : anomalie de rudi-portal. Au démarrage, strukture charge les
+formulaires des workflows ; le formulaire d'une tâche sans action
+(`organization-process__UserTask_1.json`) écrase la ligne de l'action
+`validated` dans `process_form_definition`, faute de filtre sur l'action
+(`ProcessFormDefinitionCustomDaoImpl`). Le formulaire existe toujours dans
+`form_definition`, mais il n'est plus relié à l'action.
+
+**Diagnostic** : formulaires d'action non reliés à leur workflow.
+```bash
+docker exec rudiplatform-database-1 psql -U rudi -d rudi -c "
+SELECT f.name FROM strukture_data.form_definition f
+WHERE f.name ~ '^[a-z-]+__UserTask_[0-9]+__[a-z]+$'
+  AND NOT EXISTS (SELECT 1 FROM strukture_data.process_form_definition p
+                  WHERE p.form_definition_fk = f.id);"
+```
+
+**Solution** : recréer les liens manquants (sans effet s'il n'en manque pas),
+puis recharger la page :
+```bash
+docker exec rudiplatform-database-1 psql -U rudi -d rudi -c "
+INSERT INTO strukture_data.process_form_definition
+  (uuid, process_definition_id, revision, user_task_id, action_name, form_definition_fk)
+SELECT gen_random_uuid(), split_part(f.name, '__', 1),
+       (SELECT max(p.revision) FROM strukture_data.process_form_definition p
+        WHERE p.process_definition_id = split_part(f.name, '__', 1)),
+       split_part(f.name, '__', 2), split_part(f.name, '__', 3), f.id
+FROM strukture_data.form_definition f
+WHERE f.name ~ '^[a-z-]+__UserTask_[0-9]+__[a-z]+$'
+  AND NOT EXISTS (SELECT 1 FROM strukture_data.process_form_definition p
+                  WHERE p.process_definition_id = split_part(f.name, '__', 1)
+                    AND p.user_task_id = split_part(f.name, '__', 2)
+                    AND p.action_name = split_part(f.name, '__', 3));"
+```
+
+Le lien peut de nouveau disparaître au redémarrage suivant de strukture :
+refaire le diagnostic après chaque redémarrage. Le même problème peut toucher
+projekt (schéma `projekt_data`, mêmes requêtes).
 
 ### Strukture : « Node introuvable » à la validation d'une demande du nœud (500)
 

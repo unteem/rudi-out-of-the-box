@@ -1,0 +1,25 @@
+meta {
+  name: Accepter
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{protocol}}://{{host}}/strukture/v1/organizations/tasks/{{taskId}}/do-it/validated
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/02-animateur");
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : animateur (connexion automatique avant la requête).
+}

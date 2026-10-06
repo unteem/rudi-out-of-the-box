@@ -1,0 +1,30 @@
+meta {
+  name: Télécharger un fichier avec le jeton du projet
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{protocol}}://{{host}}/medias/{{globalId}}/{{mediaId}}/dwnl
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  if (!bru.getVar("globalId") && bru.getProcessEnv("DATASET_GLOBAL_ID")) { bru.setVar("globalId", bru.getProcessEnv("DATASET_GLOBAL_ID")); }
+  if (!bru.getVar("mediaId") && bru.getProcessEnv("DATASET_MEDIA_ID")) { bru.setVar("mediaId", bru.getProcessEnv("DATASET_MEDIA_ID")); }
+  req.setHeader("Authorization", "Bearer " + bru.getVar("apiToken"));
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Jeu restreint : le projet doit avoir obtenu l'accès (« 50 Réutilisations /
+  02 Demander l'accès à un jeu restreint »). Le nœud stocke le fichier chiffré
+  avec la clé publique du portail ; l'apigateway le déchiffre pour les projets
+  autorisés.
+}

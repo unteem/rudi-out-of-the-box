@@ -1,0 +1,32 @@
+meta {
+  name: Déposer le logo d'une organisation
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{protocol}}://{{host}}/strukture/v1/producers/{{organizationUuid}}/media/LOGO
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  file: @file(fichiers/logo.png)
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/01-administrateur");
+  if (!bru.getVar("organizationUuid") && bru.getProcessEnv("ORGANIZATION_UUID")) { bru.setVar("organizationUuid", bru.getProcessEnv("ORGANIZATION_UUID")); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : administrateur (connexion automatique avant la requête).
+
+  Le logo est stocké dans Dataverse (collection rudi_media_data).
+}

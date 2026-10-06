@@ -1,0 +1,25 @@
+meta {
+  name: Définir le nouveau mot de passe
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{protocol}}://{{host}}/acl/v1/account/change-password
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "token": "{{process.env.PASSWORD_RESET_TOKEN}}",
+    "password": "{{process.env.USER_NEW_PASSWORD}}"
+  }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+

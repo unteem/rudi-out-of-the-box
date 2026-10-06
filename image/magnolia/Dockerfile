@@ -28,6 +28,10 @@ RUN curl -fsSL "$POSTGRESQL_JAR_URL" -o /usr/local/tomcat/lib/postgresql.jar
 # RUDI Magnolia module (templates FTL, définitions YAML, REST endpoints)
 COPY modules-rudi /opt/magnolia/modules/rudi
 
+# Contenu de structure RUDI (catégories, pages de rendu, rôles, groupes),
+# importé par le module Content Importer (voir magnolia.content.bootstrap.*)
+COPY content/structure /opt/magnolia/content/structure
+
 COPY server.xml /usr/local/tomcat/conf/server.xml
 
 ENV CATALINA_OPTS="-Xmx2048m -Dmagnolia.update.auto=true"

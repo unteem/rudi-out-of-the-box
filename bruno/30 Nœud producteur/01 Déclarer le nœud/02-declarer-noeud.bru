@@ -1,0 +1,43 @@
+meta {
+  name: Déclarer le nœud
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{protocol}}://{{host}}/strukture/v1/providers/{{providerUuid}}/nodes
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "version": "v1",
+    "url": "https://{{producerHost}}/catalog/v1",
+    "openingDate": "{{now}}",
+    "notifiable": true,
+    "harvestable": true
+  }
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/01-administrateur");
+  if (!bru.getVar("providerUuid") && bru.getProcessEnv("PROVIDER_UUID")) { bru.setVar("providerUuid", bru.getProcessEnv("PROVIDER_UUID")); }
+  bru.setVar("now", new Date().toISOString());
+}
+
+script:post-response {
+  if (res.status === 200) { bru.setVar("nodeUuid", res.body.uuid); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : administrateur (connexion automatique avant la requête).
+
+  URL du nœud : https://<PRODUCER_HOST>/catalog/v1. Enregistre l'UUID du nœud dans nodeUuid.
+}

@@ -1,0 +1,34 @@
+meta {
+  name: Se connecter (utilisateur)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{protocol}}://{{host}}/authenticate
+  body: formUrlEncoded
+  auth: none
+}
+
+body:form-urlencoded {
+  login: {{process.env.USER_LOGIN}}
+  password: {{process.env.USER_PASSWORD}}
+}
+
+script:post-response {
+  if (res.status === 200 && res.body && res.body.jwtToken) {
+    bru.setVar("jwtToken", res.body.jwtToken.replace(/^Bearer /, ""));
+    bru.setVar("jwtRole", "utilisateur");
+  }
+}
+
+tests {
+  test("connexion acceptée", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.jwtToken).to.be.a("string");
+  });
+}
+
+docs {
+  Utilisateur du portail (réutilisateur, membre d'organisation).
+}

@@ -1,0 +1,21 @@
+meta {
+  name: Demander une réinitialisation (mot de passe oublié)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{protocol}}://{{host}}/acl/v1/account/change-password?email={{process.env.USER_LOGIN}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Envoie par e-mail un lien contenant le jeton de réinitialisation (PASSWORD_RESET_TOKEN).
+}

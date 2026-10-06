@@ -1,0 +1,25 @@
+meta {
+  name: Mes demandes d'accès
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{protocol}}://{{host}}/projekt/v1/my-linked-datasets
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/03-utilisateur");
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : utilisateur (connexion automatique avant la requête).
+}

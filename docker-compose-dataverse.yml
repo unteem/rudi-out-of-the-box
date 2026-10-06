@@ -58,6 +58,8 @@ services:
       - "dataverse_pid_fake_authority=10.5072"
       - "dataverse_pid_fake_shoulder=FK2/"
       - "dataverse_pid_default__provider=fake"
+      # URL publique (liens des mails et des exports Dataverse)
+      - "dataverse_siteUrl=https://${DATAVERSE_DOMAIN:-dataverse.${base_dn}}"
       - "dataverse_files_storage__driver__id=file"
       - "dataverse_files_file_type=file"
       - "dataverse_files_file_directory=/data"

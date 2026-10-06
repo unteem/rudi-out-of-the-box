@@ -1,0 +1,66 @@
+meta {
+  name: Créer la réutilisation
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{protocol}}://{{host}}/projekt/v1/projects
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {}
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/03-utilisateur");
+  if (!bru.getVar("userUuid") && bru.getProcessEnv("USER_UUID")) { bru.setVar("userUuid", bru.getProcessEnv("USER_UUID")); }
+  function needJson(name) {
+    const v = bru.getVar(name);
+    if (!v) { throw new Error("Variable " + name + " absente : exécuter d'abord les étapes précédentes du dossier"); }
+    return JSON.parse(v);
+  }
+  function pick(varName, code) {
+    const list = needJson(varName) || "[]");
+    return list.find(function (x) { return x.code === code; }) || list[0];
+  }
+  const now = new Date();
+  const end = new Date(now.getTime() + 365 * 24 * 3600 * 1000);
+  req.setBody({
+    object_type: "Project",
+    title: bru.getProcessEnv("PROJECT_TITLE") || "Réutilisation de test",
+    description: "Réutilisation déclarée depuis la collection Bruno de ROOB.",
+    owner_type: "USER",
+    owner_uuid: bru.getVar("userUuid"),
+    contact_email: bru.getProcessEnv("USER_LOGIN"),
+    access_url: "https://example.org/ma-reutilisation",
+    expected_completion_start_date: now.toISOString(),
+    expected_completion_end_date: end.toISOString(),
+    themes: [bru.getProcessEnv("DATASET_THEME") || "economy"],
+    keywords: ["test"],
+    type: pick("projectTypesJson", "application"),
+    confidentiality: pick("confidentialitiesJson", "OPEN"),
+    territorial_scale: pick("territorialScalesJson", "COMMUNE"),
+    target_audiences: [pick("targetAudiencesJson", "CITOYEN")],
+    desired_supports: [pick("supportsJson", "AUCUN")],
+    reutilisation_status: pick("reuseStatusesJson", "REUSE_FINISHED")
+  });
+}
+
+script:post-response {
+  if (res.status === 200) { bru.setVar("projectUuid", res.body.uuid); bru.setVar("projectJson", JSON.stringify(res.body)); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : utilisateur (connexion automatique avant la requête).
+
+  Valeurs de référence choisies par code (application, OPEN, COMMUNE, CITOYEN, AUCUN, REUSE_FINISHED), à défaut la première de chaque liste. Statut DRAFT.
+}

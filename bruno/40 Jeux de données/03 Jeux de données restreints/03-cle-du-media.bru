@@ -1,0 +1,22 @@
+meta {
+  name: Clé de chiffrement d'un média
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{protocol}}://{{host}}/apigateway/v1/encryption-key?media-id={{mediaId}}
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  if (!bru.getVar("mediaId") && bru.getProcessEnv("DATASET_MEDIA_ID")) { bru.setVar("mediaId", bru.getProcessEnv("DATASET_MEDIA_ID")); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+

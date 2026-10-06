@@ -1,0 +1,21 @@
+meta {
+  name: Catalogue DCAT-AP (JSON-LD)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{protocol}}://{{host}}/konsult/v1/datasets/metadatas/dcat?pageSize=10
+  body: none
+  auth: none
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Format attendu par data.gouv.fr et les catalogues européens.
+}

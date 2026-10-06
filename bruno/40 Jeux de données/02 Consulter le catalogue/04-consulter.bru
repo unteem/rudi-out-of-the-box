@@ -1,0 +1,29 @@
+meta {
+  name: Consulter un jeu de données
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{protocol}}://{{host}}/konsult/v1/datasets/{{globalId}}/metadatas
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  if (!bru.getVar("globalId") && bru.getProcessEnv("DATASET_GLOBAL_ID")) { bru.setVar("globalId", bru.getProcessEnv("DATASET_GLOBAL_ID")); }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    const f = (res.body.available_formats || [])[0];
+    if (f) { bru.setVar("mediaId", f.media_id); }
+  }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+

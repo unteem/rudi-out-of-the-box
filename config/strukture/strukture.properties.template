@@ -70,12 +70,9 @@ email.urlServer=https://rudi.${base_dn}
 
 # Configuration des properties workflow et email de workflow
 ##########################
-# TODO need to be changed ?
-rudi.bpmn.form.properties.team-name=Roob
-rudi.bpmn.form.properties.project-name=Roob
-# TODO should be https ?
-rudi.bpmn.form.properties.url-server=http://rudi.${base_dn}/
-# TODO need to be changed to our contact form
-rudi.bpmn.form.properties.url-contact=https://rudi.fr/contact
+rudi.bpmn.form.properties.team-name=${RUDI_TEAM_NAME}
+rudi.bpmn.form.properties.project-name=${RUDI_PROJECT_NAME}
+rudi.bpmn.form.properties.url-server=https://rudi.${base_dn}/
+rudi.bpmn.form.properties.url-contact=${RUDI_CONTACT_URL}
 
 

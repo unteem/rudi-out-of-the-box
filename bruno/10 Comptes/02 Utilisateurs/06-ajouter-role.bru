@@ -1,0 +1,45 @@
+meta {
+  name: Ajouter un rôle à un utilisateur
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{protocol}}://{{host}}/acl/v1/users
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {}
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/01-administrateur");
+  function needJson(name) {
+    const v = bru.getVar(name);
+    if (!v) { throw new Error("Variable " + name + " absente : exécuter d'abord les étapes précédentes du dossier"); }
+    return JSON.parse(v);
+  }
+  const user = needJson("userJson"));
+  const roles = needJson("rolesJson"));
+  const code = bru.getProcessEnv("ROLE_TO_ADD") || "MODERATOR";
+  const role = roles.find(function (r) { return r.code === code; });
+  if (!role) { throw new Error("Rôle inconnu : " + code); }
+  user.roles = (user.roles || []).filter(function (r) { return r.code !== code; }).concat([role]);
+  delete user.password;
+  req.setBody(user);
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : administrateur (connexion automatique avant la requête).
+
+  Ajoute le rôle ROLE_TO_ADD de .env (MODERATOR par défaut) à l'utilisateur lu
+  par « Consulter un utilisateur », avec les rôles lus par « Lister les rôles ».
+}

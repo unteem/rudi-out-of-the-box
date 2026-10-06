@@ -74,6 +74,5 @@ mail.smtp.starttls.enable=${SMTP_STARTTLS}
 mail.from=${SMTP_FROM}
 
 email.urlServer=https://rudi.${base_dn}
-# TODO
-email.teamName=RooB
-email.projectName=RooB
+email.teamName=${RUDI_TEAM_NAME}
+email.projectName=${RUDI_PROJECT_NAME}

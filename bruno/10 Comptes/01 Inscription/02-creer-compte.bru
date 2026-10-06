@@ -1,0 +1,33 @@
+meta {
+  name: Créer un compte
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{protocol}}://{{host}}/acl/v1/account
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "login": "{{process.env.USER_LOGIN}}",
+    "password": "{{process.env.USER_PASSWORD}}",
+    "lastname": "Utilisateur",
+    "firstname": "Test",
+    "hasSubscribeToNotifications": false
+  }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Login = adresse e-mail (USER_LOGIN). Le mot de passe doit respecter la
+  politique du portail (12 caractères min., majuscule, minuscule, chiffre,
+  caractère spécial). Un e-mail d'activation est envoyé.
+}

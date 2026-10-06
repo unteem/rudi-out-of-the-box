@@ -19,8 +19,8 @@ Un nœud producteur RUDI est composé de :
 
 Le `login` de l'utilisateur ROBOT est **l'UUID du nœud** : c'est ainsi que
 strukture et kalim retrouvent le nœud (et son fournisseur) à partir des appels
-authentifiés. Attention, la collection Bruno indique à tort l'UUID du
-fournisseur.
+authentifiés (la collection de test d'origine indiquait à tort l'UUID du
+fournisseur).
 
 Le nœud a besoin de ces identifiants pour démarrer : on le **déclare d'abord**
 dans le portail, puis on le **démarre**.
@@ -63,6 +63,10 @@ crée le fichier vide `config/producer/manager.env` (voir étape 3). En cas
 d'échec, il supprime le fournisseur créé.
 
 ### Option B — Appels API manuels
+
+Les mêmes appels existent dans la collection Bruno du dépôt :
+`30 Nœud producteur/01 Déclarer le nœud` (voir
+[Utiliser Bruno](./utiliser-bruno.md)).
 
 Mettre les mots de passe entre guillemets **simples** : entre guillemets
 doubles, bash interprète `!`.
@@ -219,6 +223,9 @@ curl -sf -H "Authorization: Bearer $TOKEN" \
 
 Se connecter ensuite au manager sur `https://producteur.mondomaine.fr/manager/`
 avec les identifiants de l'étape 3.
+
+Étape suivante : déclarer l'organisation productrice et la rattacher au nœud,
+voir [Comment déclarer une organisation productrice et la rattacher à un nœud ?](./organisations-et-rattachement.md).
 
 ---
 

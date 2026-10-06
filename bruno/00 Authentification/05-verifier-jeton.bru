@@ -1,0 +1,20 @@
+meta {
+  name: Vérifier le jeton (OAuth2)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{protocol}}://{{host}}/oauth2/check_token
+  body: formUrlEncoded
+  auth: none
+}
+
+body:form-urlencoded {
+  token: {{jwtToken}}
+}
+
+docs {
+  Indique si le jeton courant est actif et pour quel compte (endpoint utilisé
+  par le catalog du nœud avant chaque appel au portail).
+}

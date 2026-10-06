@@ -1,0 +1,31 @@
+meta {
+  name: Rechercher une organisation par nom
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{protocol}}://{{host}}/strukture/v1/organizations?name={{process.env.ORGANIZATION_NAME}}
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/01-administrateur");
+}
+
+script:post-response {
+  if (res.status === 200 && res.body.elements && res.body.elements.length) { bru.setVar("organizationUuid", res.body.elements[0].uuid); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : administrateur (connexion automatique avant la requête).
+
+  Renseigne organizationUuid avec la première organisation trouvée.
+}

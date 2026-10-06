@@ -1,0 +1,29 @@
+meta {
+  name: Identifier le porteur (compte connecté)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{protocol}}://{{host}}/acl/v1/users/me
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/03-utilisateur");
+}
+
+script:post-response {
+  if (res.status === 200) { bru.setVar("userUuid", res.body.uuid); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : utilisateur (connexion automatique avant la requête).
+}

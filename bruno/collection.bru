@@ -1,0 +1,25 @@
+meta {
+  name: RUDI ROOB
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{jwtToken}}
+}
+
+docs {
+  Collection Bruno de RUDI Out-of-the-Box.
+
+  1. Copier `.env.example` en `.env` (même dossier) et le remplir.
+  2. Sélectionner l'environnement `roob`.
+  3. Exécuter une requête du dossier « 00 Authentification » pour obtenir un
+     jeton (variable `jwtToken`), utilisé par toutes les autres requêtes.
+
+  Les requêtes enchaînées enregistrent les identifiants renvoyés (tâche,
+  organisation, projet…) dans des variables reprises par les étapes suivantes.
+
+  Documentation : documentation/cookbook/utiliser-bruno.md
+}

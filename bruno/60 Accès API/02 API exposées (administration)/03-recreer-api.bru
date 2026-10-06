@@ -1,0 +1,28 @@
+meta {
+  name: Recréer les API manquantes d'un jeu (kalim)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{protocol}}://{{host}}/kalim/v1/admin/create-missing-apis?globalIds={{globalId}}
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/01-administrateur");
+  if (!bru.getVar("globalId") && bru.getProcessEnv("DATASET_GLOBAL_ID")) { bru.setVar("globalId", bru.getProcessEnv("DATASET_GLOBAL_ID")); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : administrateur (connexion automatique avant la requête).
+
+  Réparation : recrée dans l'apigateway les API des médias d'un jeu de données.
+}

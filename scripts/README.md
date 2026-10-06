@@ -279,6 +279,16 @@ base_dn=mondomaine.fr
 rudi_version=v3.3.13
 dataverse_version=6.9-noble
 LETSENCRYPT_EMAIL=admin@...
+DATAVERSE_DOMAIN=            # facultatif, défaut dataverse.<base_dn>
+MAGNOLIA_DOMAIN=             # facultatif, défaut magnolia.<base_dn>
+RUDI_TEAM_NAME=RUDI          # nom du portail (front, mails)
+RUDI_PROJECT_NAME=RUDI
+RUDI_CONTACT_URL=            # facultatif, défaut mailto:<LETSENCRYPT_EMAIL>
+KONSENT_S3_ENDPOINT=         # facultatif : stockage S3 des consentements (konsent)
+KONSENT_S3_BUCKET=
+KONSENT_S3_ACCESS_KEY=
+KONSENT_S3_SECRET_KEY=
+KONSENT_S3_TRUST_ALL_CERTS=false
 
 # Ajouté automatiquement par generate-passwords.sh
 DB_RUDI=...

@@ -39,6 +39,9 @@ config/*/*.p12
 # Listes de référence projekt personnalisées (l'exemple reste versionné)
 config/projekt/referentiels.json
 
+# Identifiants de la collection Bruno
+bruno/.env
+
 # Producer node manager admin credentials
 config/producer/manager.env
 

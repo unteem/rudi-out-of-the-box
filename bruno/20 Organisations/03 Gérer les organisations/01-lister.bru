@@ -1,0 +1,25 @@
+meta {
+  name: Lister les organisations
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{protocol}}://{{host}}/strukture/v1/organizations?limit=100
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/01-administrateur");
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : administrateur (connexion automatique avant la requête).
+}

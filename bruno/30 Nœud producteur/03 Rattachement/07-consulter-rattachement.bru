@@ -1,0 +1,26 @@
+meta {
+  name: Consulter le rattachement
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{protocol}}://{{host}}/strukture/v1/linked-producers/{{linkedProducerUuid}}
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/01-administrateur");
+  if (!bru.getVar("linkedProducerUuid") && bru.getProcessEnv("LINKED_PRODUCER_UUID")) { bru.setVar("linkedProducerUuid", bru.getProcessEnv("LINKED_PRODUCER_UUID")); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : administrateur (connexion automatique avant la requête).
+}

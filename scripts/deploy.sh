@@ -78,6 +78,8 @@ if [ ! -f ".env" ]; then
 fi
 
 set -a; source .env; set +a
+DATAVERSE_HOST="${DATAVERSE_DOMAIN:-dataverse.$base_dn}"
+MAGNOLIA_HOST="${MAGNOLIA_DOMAIN:-magnolia.$base_dn}"
 log_info "Domain:        $base_dn"
 log_info "RUDI version:  $rudi_version"
 log_info "LE email:      ${LETSENCRYPT_EMAIL:-<not set>}"
@@ -240,8 +242,8 @@ echo "Service Health Check"
 echo "========================================="
 
 ALL_HEALTHY=true
-for entry in "https://rudi.$base_dn:Portal" "https://dataverse.$base_dn:Dataverse" "https://magnolia.$base_dn:Magnolia"; do
-  IFS=':' read -r url name <<< "$entry"
+for entry in "https://rudi.$base_dn|Portal" "https://$DATAVERSE_HOST|Dataverse" "https://$MAGNOLIA_HOST|Magnolia"; do
+  IFS='|' read -r url name <<< "$entry"
   HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -k "$url" --connect-timeout 5 2>/dev/null || echo "000")
   if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ] || [ "$HTTP_CODE" = "401" ]; then
     log_success "$name is reachable (HTTP $HTTP_CODE)"
@@ -278,8 +280,8 @@ fi
 echo ""
 echo "Access URLs:"
 echo "  Portal:    https://rudi.$base_dn"
-echo "  Dataverse: https://dataverse.$base_dn"
-echo "  Magnolia:  https://magnolia.$base_dn"
+echo "  Dataverse: https://$DATAVERSE_HOST"
+echo "  Magnolia:  https://$MAGNOLIA_HOST"
 echo ""
 echo "Generated passwords: .env  (keep secure!)"
 echo ""

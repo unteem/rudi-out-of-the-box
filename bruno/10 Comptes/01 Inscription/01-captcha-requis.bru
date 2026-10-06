@@ -1,0 +1,18 @@
+meta {
+  name: Le captcha est-il demandé ?
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{protocol}}://{{host}}/acl/v1/account/{{process.env.USER_LOGIN}}/must-validate-captcha
+  body: none
+  auth: none
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+

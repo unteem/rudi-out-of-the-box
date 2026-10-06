@@ -1,0 +1,21 @@
+meta {
+  name: Clé publique de chiffrement du portail
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{protocol}}://{{host}}/apigateway/v1/encryption-key
+  body: none
+  auth: none
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Clé utilisée par le nœud pour chiffrer les fichiers des jeux restreints.
+}

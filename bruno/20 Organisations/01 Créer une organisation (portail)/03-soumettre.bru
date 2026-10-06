@@ -1,0 +1,48 @@
+meta {
+  name: Soumettre la demande
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{protocol}}://{{host}}/strukture/v1/organizations/tasks/start
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {}
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/03-utilisateur");
+  function needJson(name) {
+    const v = bru.getVar(name);
+    if (!v) { throw new Error("Variable " + name + " absente : exécuter d'abord les étapes précédentes du dossier"); }
+    return JSON.parse(v);
+  }
+  function setField(form, name, values) {
+    (form && form.sections || []).forEach(function (s) {
+      (s.fields || []).forEach(function (f) {
+        if (f.definition && f.definition.name === name) { f.values = values; }
+      });
+    });
+  }
+  const task = needJson("draftTask"));
+  if (bru.getVar("attachmentUuid")) {
+    setField(task.asset.form, "organizationImage", [bru.getVar("attachmentUuid")]);
+  }
+  req.setBody(task);
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : utilisateur (connexion automatique avant la requête).
+
+  Renvoie la tâche brouillon, avec l'image si elle a été déposée : la demande part chez les animateurs.
+}

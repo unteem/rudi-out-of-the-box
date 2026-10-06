@@ -1,0 +1,36 @@
+meta {
+  name: Ajouter un membre
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{protocol}}://{{host}}/strukture/v1/organizations/{{organizationUuid}}/members
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "user_uuid": "{{userUuid}}",
+    "role": "EDITOR"
+  }
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/01-administrateur");
+  if (!bru.getVar("organizationUuid") && bru.getProcessEnv("ORGANIZATION_UUID")) { bru.setVar("organizationUuid", bru.getProcessEnv("ORGANIZATION_UUID")); }
+  if (!bru.getVar("userUuid") && bru.getProcessEnv("USER_UUID")) { bru.setVar("userUuid", bru.getProcessEnv("USER_UUID")); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : administrateur (connexion automatique avant la requête).
+
+  userUuid : voir « 10 Comptes » (recherche d'un utilisateur). Rôle EDITOR ou ADMINISTRATOR.
+}

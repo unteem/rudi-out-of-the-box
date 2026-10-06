@@ -1,0 +1,21 @@
+meta {
+  name: Thèmes et producteurs utilisés (facettes)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{protocol}}://{{host}}/konsult/v1/datasets/metadatas/facets?facets=theme&facets=producer_organization_name
+  body: none
+  auth: none
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Alimente la section « Rechercher par thématique » de l'accueil. Vide si les facettes Dataverse ne sont pas configurées (init-dataverse.sh, étape 5).
+}

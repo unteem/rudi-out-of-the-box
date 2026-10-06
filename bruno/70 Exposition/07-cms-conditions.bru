@@ -1,0 +1,18 @@
+meta {
+  name: Conditions d'utilisation (rendu Magnolia)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{protocol}}://{{host}}/konsult/v1/cms/terms/renders/rudi-terms@terms?categories=/rudi/terms/cgu&locale=fr
+  body: none
+  auth: none
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+

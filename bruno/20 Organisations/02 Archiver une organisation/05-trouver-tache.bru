@@ -1,0 +1,46 @@
+meta {
+  name: Trouver la tâche (archivage d'organisation)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{protocol}}://{{host}}/strukture/v1/tasks?process-definition-keys=organization-process
+  body: none
+  auth: inherit
+}
+
+params:query {
+  process-definition-keys: organization-process
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/02-animateur");
+  if (!bru.getVar("organizationUuid") && bru.getProcessEnv("ORGANIZATION_UUID")) { bru.setVar("organizationUuid", bru.getProcessEnv("ORGANIZATION_UUID")); }
+  bru.setVar("taskId", null);
+}
+
+script:post-response {
+  const target = bru.getVar("organizationUuid");
+  const tasks = Array.isArray(res.body) ? res.body : [];
+  const task = tasks.find(function (t) {
+    const a = t.asset || {};
+    return a.uuid === target || (a.organization && a.organization.uuid === target);
+  });
+  if (task) {
+    bru.setVar("taskId", task.id);
+  }
+}
+
+tests {
+  test("tâche trouvée", function () {
+    expect(res.status).to.equal(200);
+    expect(bru.getVar("taskId"), "aucune tâche en attente pour cet objet").to.be.a("string");
+  });
+}
+
+docs {
+  Compte : animateur (connexion automatique avant la requête).
+
+  Tâches organization-process visibles par l'animateur (« Mes notifications » du portail) ; retient celle de {{organizationUuid}} dans taskId.
+}

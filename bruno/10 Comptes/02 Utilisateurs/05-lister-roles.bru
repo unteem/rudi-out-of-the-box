@@ -1,0 +1,34 @@
+meta {
+  name: Lister les rôles
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{protocol}}://{{host}}/acl/v1/roles?active=true
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/01-administrateur");
+}
+
+script:post-response {
+  if (res.status === 200) {
+    const roles = Array.isArray(res.body) ? res.body : (res.body.elements || []);
+    bru.setVar("rolesJson", JSON.stringify(roles));
+  }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : administrateur (connexion automatique avant la requête).
+
+  Rôles : ADMINISTRATOR, MODERATOR (animateur), PROVIDER (nœud), USER, MODULE_* (microservices)…
+}

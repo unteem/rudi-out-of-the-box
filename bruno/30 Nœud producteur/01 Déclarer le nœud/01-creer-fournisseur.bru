@@ -1,0 +1,40 @@
+meta {
+  name: Créer le fournisseur
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{protocol}}://{{host}}/strukture/v1/providers
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "code": "{{process.env.PRODUCER_CODE}}",
+    "label": "{{process.env.PRODUCER_LABEL}}",
+    "openingDate": "{{now}}"
+  }
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/01-administrateur");
+  bru.setVar("now", new Date().toISOString());
+}
+
+script:post-response {
+  if (res.status === 200) { bru.setVar("providerUuid", res.body.uuid); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : administrateur (connexion automatique avant la requête).
+
+  Enregistre l'UUID créé dans providerUuid. Code et libellé : PRODUCER_CODE et PRODUCER_LABEL de .env.
+}

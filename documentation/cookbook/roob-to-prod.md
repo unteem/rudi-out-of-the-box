@@ -39,8 +39,8 @@ les certificats Let's Encrypt au premier démarrage (challenge HTTP-01).
 | Nom d'hôte | Usage |
 |------------|-------|
 | `rudi.<domaine>` | Portail et API des microservices |
-| `dataverse.<domaine>` | Dataverse |
-| `magnolia.<domaine>` | CMS Magnolia |
+| `dataverse.<domaine>` | Dataverse (autre nom possible : `DATAVERSE_DOMAIN` dans `.env`) |
+| `magnolia.<domaine>` | CMS Magnolia (autre nom possible : `MAGNOLIA_DOMAIN` dans `.env`) |
 | `producteur.<domaine>` | Nœud producteur |
 
 ---
@@ -54,6 +54,7 @@ git clone https://github.com/rudi-platform/rudi-out-of-the-box.git
 cd rudi-out-of-the-box
 cp .env.example .env
 # Éditer .env : base_dn, rudi_version, dataverse_version, LETSENCRYPT_EMAIL
+# (variables facultatives : voir l'étape 2 de l'option B)
 ```
 
 ### 2. Lancer le déploiement
@@ -75,7 +76,8 @@ Ces étapes nécessitent une intervention et sont identiques à l'Option B :
 3. [Initialiser les vocabulaires KOS](#étape-15--initialiser-les-vocabulaires-kos)
 4. [Définir les listes de référence des réutilisations](#étape-16--définir-les-listes-de-référence-des-réutilisations)
 5. [Déployer le nœud producteur](#étape-17--déployer-le-nœud-producteur)
-6. [Vérifier la chaîne de publication](#étape-18--vérifier-la-chaîne-de-publication)
+6. [Déclarer l'organisation productrice et la rattacher au nœud](#étape-18--déclarer-lorganisation-productrice-et-la-rattacher-au-nœud)
+7. [Vérifier la chaîne de publication](#étape-19--vérifier-la-chaîne-de-publication)
 
 ---
 
@@ -106,6 +108,19 @@ rudi_version=v3.3.13
 dataverse_version=6.9-noble
 LETSENCRYPT_EMAIL=admin@mondomaine.fr
 ```
+
+Variables facultatives (valeur par défaut si vides) :
+
+| Variable | Défaut | Usage |
+|----------|--------|-------|
+| `DATAVERSE_DOMAIN`, `MAGNOLIA_DOMAIN` | `dataverse.<base_dn>`, `magnolia.<base_dn>` | Noms d'hôte publics de Dataverse et Magnolia |
+| `RUDI_TEAM_NAME`, `RUDI_PROJECT_NAME` | `RUDI` | Nom du portail dans le front et les mails (« L'équipe RUDI ») |
+| `RUDI_CONTACT_URL` | `mailto:<LETSENCRYPT_EMAIL>` | Lien « contactez-nous » des mails de workflow |
+| `KONSENT_S3_ENDPOINT`, `KONSENT_S3_BUCKET`, `KONSENT_S3_ACCESS_KEY`, `KONSENT_S3_SECRET_KEY`, `KONSENT_S3_TRUST_ALL_CERTS` | vides, `false` | Stockage S3 des PDF de consentement signés (konsent). Sans S3, les consentements aux traitements de données (selfdata) échouent |
+
+Ces valeurs sont reportées dans les propriétés des microservices par
+`prepare-properties.sh` : après modification, relancer ce script puis recréer
+les microservices concernés.
 
 ### Étape 3 — Créer les répertoires
 
@@ -154,6 +169,20 @@ jamais écrasés : les régénérer rendrait illisibles les données déjà chif
 
 Génère `config/rudi-init/01-usr.sql`, `config/acl/03-oauth-secrets.sql` et
 `config/<service>/<service>.properties` à partir des `.template` et de `.env`.
+
+**Envoi des e-mails** : les workflows (création de compte, demandes
+d'organisation, de rattachement, de réutilisation) envoient des e-mails. Sans
+`.env.smtp`, ils partent vers `mailhog` et ne sont pas délivrés. Avant cette
+étape (Option B) ou avant `deploy.sh` (Option A) :
+
+```bash
+cp .env.smtp.example .env.smtp
+# SMTP_HOST, SMTP_PORT, SMTP_AUTH, SMTP_STARTTLS, SMTP_USERNAME, SMTP_PASSWORD, SMTP_FROM
+```
+
+Voir [Comment configurer l'envoi de mails ?](./configuration-mail.md) (et pour
+modifier ensuite : `prepare-properties.sh` puis redémarrer acl, kalim, projekt,
+selfdata et strukture).
 
 ### Étape 7 — Préparer Traefik et le réseau Docker
 
@@ -228,8 +257,10 @@ docker compose -f docker-compose-rudi.yml restart \
 
 ### Étape 13 — Configurer Magnolia
 
-Connexion initiale (`superuser` / `superuser`), changement de mot de passe,
-configuration de l'URL du portail : voir
+Au premier démarrage, Magnolia importe le contenu de structure RUDI
+(catégories, pages de rendu, rôles et groupes d'édition, accès anonyme pour
+konsult). Il reste à changer le mot de passe `superuser` (`superuser` au premier
+démarrage), vérifier ce contenu et créer les comptes éditoriaux : voir
 [Comment configurer Magnolia CMS ?](./configuration-magnolia.md).
 
 La paire de clés d'activation de Magnolia est générée dans
@@ -258,8 +289,13 @@ INSERT INTO acl_data.user_role (user_fk, role_fk)
 SELECT u.id, r.id
 FROM acl_data.user_ u, acl_data.role r
 WHERE u.login = 'admin@mondomaine.fr'
-  AND r.code = 'ADMINISTRATOR';
+  AND r.code IN ('ADMINISTRATOR', 'MODERATOR');
 ```
+
+`MODERATOR` (« Animateur ») permet de valider les demandes (organisations,
+rattachements, réutilisations) dans « Mes notifications » ; il peut aussi être
+donné à un autre compte (voir
+[Organisations et rattachement](./organisations-et-rattachement.md#étape-1--disposer-dun-animateur)).
 
 L'extension `pgcrypto` (fonctions `crypt` et `gen_salt`) est installée par
 `config/rudi-init/02-extension.sql`.
@@ -365,11 +401,24 @@ docker compose -f docker-compose-producer.yml up -d producer-manager
 
 Le manager est accessible sur `https://producteur.mondomaine.fr/manager/`.
 
-### Étape 18 — Vérifier la chaîne de publication
+### Étape 18 — Déclarer l'organisation productrice et la rattacher au nœud
+
+Kalim refuse les jeux de données dont l'organisation productrice est inconnue
+du portail. Depuis le manager du nœud, demander la création de l'organisation
+puis son rattachement ; un animateur valide chaque demande dans « Mes
+notifications ». Détail, alternatives (organisation créée depuis le portail)
+et équivalent Bruno :
+[Comment déclarer une organisation productrice et la rattacher à un nœud ?](./organisations-et-rattachement.md).
+
+### Étape 19 — Vérifier la chaîne de publication
 
 Publier un premier jeu de données de test depuis le nœud producteur et vérifier
 qu'il apparaît sur le portail : voir
 [Comment une donnée est-elle publiée sur le portail RUDI ?](./cycle-de-vie-donnees.md#publier-un-premier-jeu-de-données-de-test).
+
+Pour vérifier l'ensemble des parcours (comptes, organisations, jeux de données,
+réutilisations, accès API, exposition), utiliser la collection Bruno du dépôt :
+[Comment utiliser la collection Bruno de RUDI ?](./utiliser-bruno.md#vérifier-une-installation).
 
 ---
 
@@ -432,6 +481,10 @@ tar czf /backups/secrets-$(date +%Y%m%d).tar.gz \
 - [Architecture, routage et checklist de sécurité](../../PRODUCTION-DEPLOYMENT.md)
 - [Référence des scripts](../../scripts/README.md)
 - [Dépannage](../../TROUBLESHOOTING.md)
+- [Cycle de vie des données et rôles](./cycle-de-vie-donnees.md)
+- [Organisations et rattachement](./organisations-et-rattachement.md)
+- [Réutilisations et accès API](./reutilisations.md)
+- [Collection Bruno (API)](./utiliser-bruno.md)
 - [Configuration SMTP](./configuration-mail.md)
 - [Mettre en place un SSO](./configuration-sso.md)
 - [Certificats SSL Traefik](./treafik-certificat-ssl.md)

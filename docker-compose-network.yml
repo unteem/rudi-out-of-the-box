@@ -47,8 +47,7 @@ services:
   dataverse:
     labels:
       - "traefik.enable=true"
-      # TODO dataverse.rudi
-      - "traefik.http.routers.dataverse.rule=Host(`dataverse.${base_dn}`)"
+      - "traefik.http.routers.dataverse.rule=Host(`${DATAVERSE_DOMAIN:-dataverse.${base_dn}}`)"
       - "traefik.http.routers.dataverse.entrypoints=websecure"
       - "traefik.http.routers.dataverse.tls=true"
       - "traefik.http.routers.dataverse.tls.certresolver=letsencrypt"
@@ -61,8 +60,7 @@ services:
   magnolia:
     labels:
       - "traefik.enable=true"
-      # TODO magnolia.rudi
-      - "traefik.http.routers.magnolia.rule=Host(`magnolia.${base_dn}`)"
+      - "traefik.http.routers.magnolia.rule=Host(`${MAGNOLIA_DOMAIN:-magnolia.${base_dn}}`)"
       - "traefik.http.routers.magnolia.entrypoints=websecure"
       - "traefik.http.routers.magnolia.tls=true"
       - "traefik.http.routers.magnolia.tls.certresolver=letsencrypt"

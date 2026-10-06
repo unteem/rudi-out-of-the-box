@@ -1,0 +1,46 @@
+meta {
+  name: Trouver la tâche (demande de nouvelles données)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{protocol}}://{{host}}/projekt/v1/tasks?process-definition-keys=new-dataset-request-process
+  body: none
+  auth: inherit
+}
+
+params:query {
+  process-definition-keys: new-dataset-request-process
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/02-animateur");
+  if (!bru.getVar("newDatasetRequestUuid") && bru.getProcessEnv("NEW_DATASET_REQUEST_UUID")) { bru.setVar("newDatasetRequestUuid", bru.getProcessEnv("NEW_DATASET_REQUEST_UUID")); }
+  bru.setVar("taskId", null);
+}
+
+script:post-response {
+  const target = bru.getVar("newDatasetRequestUuid");
+  const tasks = Array.isArray(res.body) ? res.body : [];
+  const task = tasks.find(function (t) {
+    const a = t.asset || {};
+    return a.uuid === target || (a.organization && a.organization.uuid === target);
+  });
+  if (task) {
+    bru.setVar("taskId", task.id);
+  }
+}
+
+tests {
+  test("tâche trouvée", function () {
+    expect(res.status).to.equal(200);
+    expect(bru.getVar("taskId"), "aucune tâche en attente pour cet objet").to.be.a("string");
+  });
+}
+
+docs {
+  Compte : animateur (connexion automatique avant la requête).
+
+  Tâches new-dataset-request-process du compte connecté (« Mes notifications » du portail) ; retient celle de {{newDatasetRequestUuid}} dans taskId.
+}

@@ -1,0 +1,27 @@
+meta {
+  name: Télécharger un fichier (jeu ouvert)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{protocol}}://{{host}}/medias/{{globalId}}/{{mediaId}}/dwnl
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  if (!bru.getVar("globalId") && bru.getProcessEnv("DATASET_GLOBAL_ID")) { bru.setVar("globalId", bru.getProcessEnv("DATASET_GLOBAL_ID")); }
+  if (!bru.getVar("mediaId") && bru.getProcessEnv("DATASET_MEDIA_ID")) { bru.setVar("mediaId", bru.getProcessEnv("DATASET_MEDIA_ID")); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Passe par l'apigateway, qui relaie vers le stockage du nœud. Jeu restreint :
+  voir « 60 Accès API » (jeton OAuth2 d'un projet autorisé).
+}

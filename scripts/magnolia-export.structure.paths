@@ -1,0 +1,33 @@
+# Jeu « structure » : ce dont le portail a besoin pour fonctionner, sans contenu
+# éditorial. Format : <workspace> <chemin> [full|structure|referenced]
+#
+# Les comptes utilisateurs (workspace users) ne sont jamais exportés.
+
+# Catégories filtrées par konsult (/rudi/terms, /rudi/news, /rudi/projectvalues)
+category       /rudi   full
+
+# Pages de rendu appelées par konsult (rudi/<template>.html)
+website        /rudi   full
+
+# Dossiers racines des types de contenu, sans les éléments
+news           /rudi   structure
+terms          /rudi   structure
+projectvalues  /rudi   structure
+
+# Rôles et groupes propres à RUDI
+userroles      /news_editor            full
+userroles      /terms_editor           full
+userroles      /projectvalues_editor   full
+userroles      /Imaging-editor         full
+userroles      /back_office_connexion  full
+usergroups     /editor                 full
+usergroups     /super-users            full
+
+# Rôles par défaut de Magnolia complétés pour RUDI (lecture anonyme des images,
+# des pages de rendu et des endpoints de livraison) : seules les permissions
+# ajoutées sont exportées, comparées au jeu « reference » d'un export --fresh
+userroles      /anonymous              additions
+userroles      /rest-anonymous         additions
+
+# Reliquat d'un exemple Magnolia, inutilisé par RUDI
+!userroles     /rest-anonymous/acl_resources

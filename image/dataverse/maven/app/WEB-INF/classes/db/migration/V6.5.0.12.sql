@@ -1,1 +1,0 @@
-CREATE INDEX IF NOT EXISTS index_dataversefieldtypeinputlevel_displayoncreate ON dataversefieldtypeinputlevel (displayoncreate);

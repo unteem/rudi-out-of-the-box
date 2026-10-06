@@ -134,12 +134,14 @@ echo ""
 API="$PROJEKT_URL/projekt/v1" TOKEN="$ACCESS_TOKEN" FILE="$PROJEKT_REFERENTIELS" DRY_RUN="$DRY_RUN" \
 python3 - <<'EOF'
 import json, os, ssl, sys, urllib.request, urllib.error
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 API, TOKEN, FILE = os.environ["API"], os.environ["TOKEN"], os.environ["FILE"]
 DRY_RUN = os.environ["DRY_RUN"] == "true"
 CTX = ssl._create_unverified_context()
-NOW = datetime.now().isoformat(timespec="seconds")
+# projekt compare opening_date / closing_date à l'heure UTC (sans fuseau) :
+# une date locale en avance sur UTC rendrait la valeur invisible jusque-là
+NOW = (datetime.now(timezone.utc) - timedelta(minutes=1)).replace(tzinfo=None).isoformat(timespec="seconds")
 
 # clé du fichier -> (libellé, ressource API, PUT avec l'UUID dans le chemin)
 LISTS = {

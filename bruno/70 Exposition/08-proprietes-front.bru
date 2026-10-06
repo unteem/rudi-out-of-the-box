@@ -1,0 +1,21 @@
+meta {
+  name: Propriétés du front (nom du portail…)
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{protocol}}://{{host}}/konsult/v1/properties/front-office
+  body: none
+  auth: none
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Reflète RUDI_TEAM_NAME / RUDI_PROJECT_NAME de .env.
+}

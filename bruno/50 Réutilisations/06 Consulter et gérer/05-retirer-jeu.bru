@@ -1,0 +1,27 @@
+meta {
+  name: Retirer un jeu de données mobilisé
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{protocol}}://{{host}}/projekt/v1/projects/{{projectUuid}}/linked-datasets/{{linkedDatasetUuid}}
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/03-utilisateur");
+  if (!bru.getVar("projectUuid") && bru.getProcessEnv("PROJECT_UUID")) { bru.setVar("projectUuid", bru.getProcessEnv("PROJECT_UUID")); }
+  if (!bru.getVar("linkedDatasetUuid") && bru.getProcessEnv("LINKED_DATASET_UUID")) { bru.setVar("linkedDatasetUuid", bru.getProcessEnv("LINKED_DATASET_UUID")); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : utilisateur (connexion automatique avant la requête).
+}

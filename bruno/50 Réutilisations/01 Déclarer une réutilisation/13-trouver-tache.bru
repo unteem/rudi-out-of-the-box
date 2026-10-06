@@ -1,0 +1,46 @@
+meta {
+  name: Trouver la tâche (publication de réutilisation)
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{protocol}}://{{host}}/projekt/v1/tasks?process-definition-keys=project-process
+  body: none
+  auth: inherit
+}
+
+params:query {
+  process-definition-keys: project-process
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/02-animateur");
+  if (!bru.getVar("projectUuid") && bru.getProcessEnv("PROJECT_UUID")) { bru.setVar("projectUuid", bru.getProcessEnv("PROJECT_UUID")); }
+  bru.setVar("taskId", null);
+}
+
+script:post-response {
+  const target = bru.getVar("projectUuid");
+  const tasks = Array.isArray(res.body) ? res.body : [];
+  const task = tasks.find(function (t) {
+    const a = t.asset || {};
+    return a.uuid === target || (a.organization && a.organization.uuid === target);
+  });
+  if (task) {
+    bru.setVar("taskId", task.id);
+  }
+}
+
+tests {
+  test("tâche trouvée", function () {
+    expect(res.status).to.equal(200);
+    expect(bru.getVar("taskId"), "aucune tâche en attente pour cet objet").to.be.a("string");
+  });
+}
+
+docs {
+  Compte : animateur (connexion automatique avant la requête).
+
+  Tâches project-process du compte connecté (« Mes notifications » du portail) ; retient celle de {{projectUuid}} dans taskId.
+}

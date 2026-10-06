@@ -1,0 +1,42 @@
+meta {
+  name: Créer un type d'adresse
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{protocol}}://{{host}}/strukture/v1/addressRoles
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "code": "CONTACT",
+    "label": "Contact",
+    "type": "EMAIL",
+    "openingDate": "{{now}}",
+    "order": 1
+  }
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/01-administrateur");
+  bru.setVar("now", new Date().toISOString());
+}
+
+script:post-response {
+  if (res.status === 200) { bru.setVar("addressRoleUuid", res.body.uuid); bru.setVar("addressRoleJson", JSON.stringify(res.body)); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : administrateur (connexion automatique avant la requête).
+
+  Type : POSTAL, PHONE, EMAIL ou WEBSITE.
+}

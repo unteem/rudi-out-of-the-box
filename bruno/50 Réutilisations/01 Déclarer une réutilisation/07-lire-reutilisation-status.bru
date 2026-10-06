@@ -1,0 +1,33 @@
+meta {
+  name: Lire les statuts de réutilisation
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{protocol}}://{{host}}/projekt/v1/reutilisation-status?active=true&limit=100
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/03-utilisateur");
+}
+
+script:post-response {
+  if (res.status === 200) {
+    const list = Array.isArray(res.body) ? res.body : (res.body.elements || res.body.items || []);
+    bru.setVar("reuseStatusesJson", JSON.stringify(list));
+  }
+}
+
+tests {
+  test("liste non vide", function () {
+    expect(res.status).to.equal(200);
+    expect(JSON.parse(bru.getVar("reuseStatusesJson")).length, "liste vide : lancer init-projekt.sh").to.be.above(0);
+  });
+}
+
+docs {
+  Compte : utilisateur (connexion automatique avant la requête).
+}

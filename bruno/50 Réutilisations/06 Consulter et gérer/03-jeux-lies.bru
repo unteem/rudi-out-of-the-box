@@ -1,0 +1,26 @@
+meta {
+  name: Jeux de données mobilisés
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{protocol}}://{{host}}/projekt/v1/projects/{{projectUuid}}/linked-datasets
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/03-utilisateur");
+  if (!bru.getVar("projectUuid") && bru.getProcessEnv("PROJECT_UUID")) { bru.setVar("projectUuid", bru.getProcessEnv("PROJECT_UUID")); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : utilisateur (connexion automatique avant la requête).
+}

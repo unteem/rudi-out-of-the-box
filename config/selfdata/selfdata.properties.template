@@ -66,10 +66,8 @@ mail.smtp.password=${SMTP_PASSWORD}
 mail.smtp.starttls.enable=${SMTP_STARTTLS}
 mail.from=${SMTP_FROM}
 
-email.urlServer=http://rudi.${base_dn}
+email.urlServer=https://rudi.${base_dn}
 
-# TODO
-selfdata.waste-dataset-uuid=054a6d28-dba1-4c8a-91f8-d3a524c3069c
 
 
 rudi.selfdata.matchingdata.keystore.keystore-path=/etc/rudi/config/selfdata/rudi-selfdata.jks

@@ -1,0 +1,46 @@
+meta {
+  name: Trouver la tâche (demande d'accès)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{protocol}}://{{host}}/projekt/v1/tasks?process-definition-keys=linked-dataset-process
+  body: none
+  auth: inherit
+}
+
+params:query {
+  process-definition-keys: linked-dataset-process
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/06-membre-producteur");
+  if (!bru.getVar("linkedDatasetUuid") && bru.getProcessEnv("LINKED_DATASET_UUID")) { bru.setVar("linkedDatasetUuid", bru.getProcessEnv("LINKED_DATASET_UUID")); }
+  bru.setVar("taskId", null);
+}
+
+script:post-response {
+  const target = bru.getVar("linkedDatasetUuid");
+  const tasks = Array.isArray(res.body) ? res.body : [];
+  const task = tasks.find(function (t) {
+    const a = t.asset || {};
+    return a.uuid === target || (a.organization && a.organization.uuid === target);
+  });
+  if (task) {
+    bru.setVar("taskId", task.id);
+  }
+}
+
+tests {
+  test("tâche trouvée", function () {
+    expect(res.status).to.equal(200);
+    expect(bru.getVar("taskId"), "aucune tâche en attente pour cet objet").to.be.a("string");
+  });
+}
+
+docs {
+  Compte : membre de l'organisation productrice (connexion automatique avant la requête).
+
+  Tâches linked-dataset-process du compte connecté (« Mes notifications » du portail) ; retient celle de {{linkedDatasetUuid}} dans taskId.
+}

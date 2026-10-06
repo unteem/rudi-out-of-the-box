@@ -1,0 +1,34 @@
+meta {
+  name: Se connecter (animateur)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{protocol}}://{{host}}/authenticate
+  body: formUrlEncoded
+  auth: none
+}
+
+body:form-urlencoded {
+  login: {{process.env.ANIMATEUR_LOGIN}}
+  password: {{process.env.ANIMATEUR_PASSWORD}}
+}
+
+script:post-response {
+  if (res.status === 200 && res.body && res.body.jwtToken) {
+    bru.setVar("jwtToken", res.body.jwtToken.replace(/^Bearer /, ""));
+    bru.setVar("jwtRole", "animateur");
+  }
+}
+
+tests {
+  test("connexion acceptée", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.jwtToken).to.be.a("string");
+  });
+}
+
+docs {
+  Compte avec le rôle MODERATOR : valide les demandes (organisations, rattachements, réutilisations).
+}

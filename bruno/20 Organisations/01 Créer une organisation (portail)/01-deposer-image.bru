@@ -1,0 +1,35 @@
+meta {
+  name: Déposer l'image de l'organisation (facultatif)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{protocol}}://{{host}}/strukture/v1/attachments
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  file: @file(fichiers/logo.png)
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/03-utilisateur");
+}
+
+script:post-response {
+  if (res.status === 201 && typeof res.body === "string") { bru.setVar("attachmentUuid", res.body); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : utilisateur (connexion automatique avant la requête).
+
+  Fichier image (jpeg ou png, 10 Mo max) : fichiers/logo.png par défaut. Renvoie l'UUID de la pièce jointe (attachmentUuid).
+}

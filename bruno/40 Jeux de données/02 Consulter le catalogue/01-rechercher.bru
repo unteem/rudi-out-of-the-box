@@ -1,0 +1,22 @@
+meta {
+  name: Rechercher des jeux de données
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{protocol}}://{{host}}/konsult/v1/datasets/metadatas?freeText=test&limit=10
+  body: none
+  auth: none
+}
+
+script:post-response {
+  if (res.status === 200 && res.body.items && res.body.items.length && !bru.getVar("globalId")) { bru.setVar("globalId", res.body.items[0].global_id); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+

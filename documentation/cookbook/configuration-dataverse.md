@@ -58,7 +58,7 @@ Dataverse met **3 à 5 minutes** à démarrer (déploiement Payara).
 ./scripts/prepare-properties.sh
 ```
 
-Le script est idempotent et effectue les étapes 1 à 4 ci-dessous. Il écrit le
+Le script est idempotent et effectue les étapes 1 à 5 ci-dessous. Il écrit le
 token API dans `.env` ; `prepare-properties.sh` le reporte dans les propriétés
 des microservices.
 
@@ -123,26 +123,44 @@ dv http://localhost:8080/api/metadatablocks/rudi | head -c 200
 
 La collection racine doit être publiée en premier : Dataverse refuse de publier
 une collection dont la collection parente ne l'est pas. Ensuite, pour chaque
-collection : création sous la racine, association des blocs `citation` et
-`rudi`, publication.
+collection : création sous la racine, association des blocs de métadonnées
+(`citation` et `rudi` pour les jeux de données, `citation` seul pour les médias
+du portail), publication.
 
 ```bash
 dv -X POST -H "X-Dataverse-key: $DATAVERSE_API_TOKEN" \
   http://localhost:8080/api/dataverses/:root/actions/:publish
 
-for entry in "rudi_data:RUDI Data" "rudi_archive:RUDI Archive" "rudi_media_data:RUDI Media"; do
-  alias=${entry%%:*}; name=${entry#*:}
+for entry in 'rudi_data:RUDI Data:["citation","rudi"]' 'rudi_archive:RUDI Archive:["citation","rudi"]' 'rudi_media_data:RUDI Media:["citation"]'; do
+  alias=${entry%%:*}; rest=${entry#*:}; name=${rest%%:*}; blocks=${rest#*:}
 
   dv -X POST -H "X-Dataverse-key: $DATAVERSE_API_TOKEN" -H "Content-type: application/json" \
     http://localhost:8080/api/dataverses/:root \
     -d "{\"alias\":\"$alias\",\"name\":\"$name\",\"dataverseType\":\"UNCATEGORIZED\",\"dataverseContacts\":[{\"contactEmail\":\"$LETSENCRYPT_EMAIL\"}]}"
 
   dv -X POST -H "X-Dataverse-key: $DATAVERSE_API_TOKEN" -H "Content-type: application/json" \
-    http://localhost:8080/api/dataverses/$alias/metadatablocks -d '["citation","rudi"]'
+    http://localhost:8080/api/dataverses/$alias/metadatablocks -d "$blocks"
 
   dv -X POST -H "X-Dataverse-key: $DATAVERSE_API_TOKEN" \
     http://localhost:8080/api/dataverses/$alias/actions/:publish
 done
+```
+
+#### Étape 5 — Configurer les facettes de recherche de `rudi_data`
+
+konsult lit la liste des thèmes et des organisations productrices dans les
+facettes de la recherche Dataverse. Dataverse ne renvoie que les facettes
+configurées sur la collection : sans cette étape, la section « Rechercher par
+thématique » de l'accueil reste en chargement et les thèmes s'affichent sous
+forme de code (`[economy]`) sur les fiches des jeux de données.
+
+```bash
+dv -X POST -H "X-Dataverse-key: $DATAVERSE_API_TOKEN" -H "Content-type: application/json" \
+  http://localhost:8080/api/dataverses/rudi_data/facets \
+  -d '["rudi_theme","rudi_keywords","rudi_producer_organization_name","rudi_temporal_spread_start_date","rudi_temporal_spread_end_date","rudi_producer_organization_id"]'
+
+# Vérifier
+dv -H "X-Dataverse-key: $DATAVERSE_API_TOKEN" http://localhost:8080/api/dataverses/rudi_data/facets
 ```
 
 ---

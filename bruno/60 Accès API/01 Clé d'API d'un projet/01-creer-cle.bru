@@ -1,0 +1,49 @@
+meta {
+  name: Créer une clé d'API
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{protocol}}://{{host}}/projekt/v1/projects/{{projectUuid}}/keys
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "project_key": {
+      "name": "Clé Bruno",
+      "expirationDate": "{{keyExpiration}}"
+    },
+    "password": "{{process.env.USER_PASSWORD}}"
+  }
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/03-utilisateur");
+  if (!bru.getVar("projectUuid") && bru.getProcessEnv("PROJECT_UUID")) { bru.setVar("projectUuid", bru.getProcessEnv("PROJECT_UUID")); }
+  bru.setVar("keyExpiration", new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString());
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("projectKeyUuid", res.body.uuid);
+    bru.setVar("clientId", res.body.client_id);
+    bru.setVar("clientSecret", res.body.client_secret);
+  }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : utilisateur (connexion automatique avant la requête).
+
+  Le mot de passe du porteur est demandé pour confirmer. Le client_secret
+  n'est affiché qu'à la création : il est conservé dans clientSecret pour la
+  suite (à noter pour un usage hors Bruno).
+}

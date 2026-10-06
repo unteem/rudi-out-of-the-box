@@ -1,0 +1,51 @@
+meta {
+  name: Créer la demande d'archivage
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{protocol}}://{{host}}/strukture/v1/organizations/tasks
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {}
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/03-utilisateur");
+  function needJson(name) {
+    const v = bru.getVar(name);
+    if (!v) { throw new Error("Variable " + name + " absente : exécuter d'abord les étapes précédentes du dossier"); }
+    return JSON.parse(v);
+  }
+  function setField(form, name, values) {
+    (form && form.sections || []).forEach(function (s) {
+      (s.fields || []).forEach(function (f) {
+        if (f.definition && f.definition.name === name) { f.values = values; }
+      });
+    });
+  }
+  const org = needJson("organizationJson"));
+  const form = needJson("archiveForm"));
+  setField(form, "organizationArchiveMode", [bru.getProcessEnv("ARCHIVE_MODE") || "ARCHIVED"]);
+  setField(form, "messageToModerator", ["Demande d'archivage envoyée depuis Bruno"]);
+  org.form = form;
+  req.setBody(org);
+}
+
+script:post-response {
+  if (res.status === 200) { bru.setVar("draftTask", JSON.stringify(res.body)); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : utilisateur (connexion automatique avant la requête).
+}

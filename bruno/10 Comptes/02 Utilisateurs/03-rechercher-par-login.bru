@@ -1,0 +1,31 @@
+meta {
+  name: Rechercher un utilisateur par login
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{protocol}}://{{host}}/acl/v1/users?login={{process.env.USER_LOGIN}}
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/01-administrateur");
+}
+
+script:post-response {
+  if (res.status === 200 && res.body.elements && res.body.elements.length) { bru.setVar("userUuid", res.body.elements[0].uuid); }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : administrateur (connexion automatique avant la requête).
+
+  Renseigne userUuid (utile pour les membres d'organisation).
+}

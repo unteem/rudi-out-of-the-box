@@ -1,0 +1,35 @@
+meta {
+  name: Obtenir un jeton OAuth2 (client_credentials)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{protocol}}://{{host}}/oauth2/token
+  body: formUrlEncoded
+  auth: basic
+}
+
+auth:basic {
+  username: {{clientId}}
+  password: {{clientSecret}}
+}
+
+body:form-urlencoded {
+  grant_type: client_credentials
+}
+
+script:post-response {
+  if (res.status === 200) { bru.setVar("apiToken", res.body.access_token); }
+}
+
+tests {
+  test("jeton obtenu", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.access_token).to.be.a("string");
+  });
+}
+
+docs {
+  Authentification Basic client_id:client_secret ; le jeton est conservé dans apiToken.
+}

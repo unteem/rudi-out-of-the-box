@@ -78,6 +78,27 @@ export SMTP_HOST SMTP_PORT SMTP_AUTH SMTP_STARTTLS \
 
 export base_dn
 
+# Spring Boot lit les .properties en ISO-8859-1 : les caractères non ASCII
+# (accents) sont écrits sous forme d'échappements \uXXXX
+properties_escape() {
+  printf '%s' "$1" | python3 -c 'import sys; print("".join(c if ord(c) < 128 else "\\u%04x" % ord(c) for c in sys.stdin.read()), end="")'
+}
+
+# Personnalisation du portail (valeurs par défaut si absentes de .env)
+export RUDI_TEAM_NAME="$(properties_escape "${RUDI_TEAM_NAME:-RUDI}")"
+export RUDI_PROJECT_NAME="$(properties_escape "${RUDI_PROJECT_NAME:-RUDI}")"
+export RUDI_CONTACT_URL="${RUDI_CONTACT_URL:-mailto:${LETSENCRYPT_EMAIL}}"
+
+# Stockage S3 de konsent (optionnel)
+export KONSENT_S3_ENDPOINT="${KONSENT_S3_ENDPOINT:-}"
+export KONSENT_S3_BUCKET="${KONSENT_S3_BUCKET:-}"
+export KONSENT_S3_ACCESS_KEY="${KONSENT_S3_ACCESS_KEY:-}"
+export KONSENT_S3_SECRET_KEY="${KONSENT_S3_SECRET_KEY:-}"
+export KONSENT_S3_TRUST_ALL_CERTS="${KONSENT_S3_TRUST_ALL_CERTS:-false}"
+if [ -z "$KONSENT_S3_ENDPOINT" ]; then
+  log_warning "KONSENT_S3_ENDPOINT vide : les consentements (konsent) ne pourront pas être enregistrés"
+fi
+
 # List of variables to replace (CRITICAL: only these will be replaced)
 # This prevents envsubst from replacing Spring Boot variables like ${server.ssl.key-store-password}
 ENVSUBST_VARS='$DB_ACL $DB_APIGATEWAY $DB_KALIM $DB_KONSENT $DB_KOS $DB_PROJEKT $DB_SELFDATA $DB_STRUKTURE'
@@ -88,6 +109,8 @@ ENVSUBST_VARS="$ENVSUBST_VARS "'$ADMIN_REGISTRY $ADMIN_GATEWAY $ADMIN_APIGATEWAY
 ENVSUBST_VARS="$ENVSUBST_VARS "'$CONSENT_VALIDATE_SALT $CONSENT_REVOKE_SALT $TREATMENTVERSION_PUBLISH_SALT'
 ENVSUBST_VARS="$ENVSUBST_VARS "'$SMTP_HOST $SMTP_PORT $SMTP_AUTH $SMTP_STARTTLS $SMTP_USERNAME $SMTP_PASSWORD $SMTP_FROM'
 ENVSUBST_VARS="$ENVSUBST_VARS "'$base_dn'
+ENVSUBST_VARS="$ENVSUBST_VARS "'$RUDI_TEAM_NAME $RUDI_PROJECT_NAME $RUDI_CONTACT_URL'
+ENVSUBST_VARS="$ENVSUBST_VARS "'$KONSENT_S3_ENDPOINT $KONSENT_S3_BUCKET $KONSENT_S3_ACCESS_KEY $KONSENT_S3_SECRET_KEY $KONSENT_S3_TRUST_ALL_CERTS'
 
 log_info "Processing microservice properties files..."
 echo ""

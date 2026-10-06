@@ -1,0 +1,22 @@
+meta {
+  name: Se déconnecter (révoquer le jeton)
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{protocol}}://{{host}}/acl/v1/account/logout
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  req.setHeader("token", bru.getVar("jwtToken"));
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+

@@ -54,7 +54,10 @@ point d'accès unique pour la recherche et le téléchargement.
 
 Tout se fait dans le **manager** du nœud (`https://producteur.<domaine>/manager/`) :
 
-1. Créer une **organisation** (le producteur de la donnée) et un **contact**.
+1. Disposer d'une **organisation** productrice validée sur le portail et
+   rattachée au nœud (voir
+   [Organisations et rattachement](./organisations-et-rattachement.md)), et
+   créer un **contact**.
 2. Créer une **métadonnée** : titre, description, thème, licence, dates, etc.
    Le thème et la licence doivent faire partie des vocabulaires KOS du portail.
 3. Joindre un ou plusieurs **fichiers** (CSV, GeoJSON, PDF…) ou référencer une
@@ -78,9 +81,11 @@ Le portail peut aussi **moissonner** le nœud : si le nœud est déclaré avec
 
 Pour chaque demande d'intégration, kalim :
 
-1. **Valide** la métadonnée : fournisseur connu, thème et licence présents dans
-   KOS, champs obligatoires. En cas d'erreur, un **rapport d'intégration** est
-   renvoyé au nœud et visible dans le manager.
+1. **Valide** la métadonnée : organisation productrice connue du portail
+   (sinon `ERR_113`), thème et licence présents dans KOS, champs obligatoires,
+   version de format (`metadata_info.api_version` 1.2.0 à 1.4.2). En cas
+   d'erreur, un **rapport d'intégration** est renvoyé au nœud et visible dans
+   le manager.
 2. **Crée un jeu de données Dataverse** contenant la métadonnée.
 3. **Crée les routes** de téléchargement dans l'apigateway.
 
@@ -94,13 +99,33 @@ Pour chaque demande d'intégration, kalim :
   du nœud et déchiffre le fichier si nécessaire. Le fichier ne transite que
   le temps du téléchargement, il n'est pas stocké sur le portail.
 
-### Rattacher une organisation du portail à un nœud (optionnel)
+### Jeux de données restreints
 
-Une organisation existante sur le portail peut être rattachée à un nœud
-(« linked producer ») : le nœud émet une demande de rattachement
-(`node/v1/linked-producers/request/{uuid}`), puis un animateur la valide dans le
-portail (espace « Mes notifications »). Ce workflow est décrit dans la
-collection Bruno « Workflow - Demande de rattachement ».
+Un jeu de données à accès restreint (`restricted_access: true`) est chiffré
+par le nœud avec la clé publique du portail
+(`/apigateway/v1/encryption-key`). Seules les réutilisations auxquelles
+l'organisation productrice a accordé l'accès peuvent le télécharger ;
+l'apigateway déchiffre alors le fichier. Voir
+[Réutilisations](./reutilisations.md#accéder-à-un-jeu-de-données-restreint).
+
+---
+
+## Rôles du portail
+
+| Rôle | Attribué à | Permet |
+|------|------------|--------|
+| `ADMINISTRATOR` | Administrateur de la plateforme | Administration : comptes, fournisseurs et nœuds, organisations, référentiels |
+| `MODERATOR` (Animateur) | Équipe d'animation (souvent l'administrateur aussi) | Valider les organisations, rattachements, détachements, réutilisations, demandes de nouvelles données |
+| `USER` | Tout compte créé par inscription | Déclarer des organisations et des réutilisations, demander l'accès à des jeux restreints |
+| `PROVIDER` | Compte ROBOT d'un nœud (login = UUID du nœud) | Publier des métadonnées (kalim), demander création, rattachement et détachement d'organisations |
+| `MODULE_*` | Comptes techniques des microservices | Appels entre microservices (créés à l'installation) |
+
+Dans une **organisation**, un membre est `ADMINISTRATOR` (gère l'organisation
+et ses membres) ou `EDITOR`. Les membres de l'organisation productrice d'un
+jeu restreint traitent les demandes d'accès.
+
+Gestion des comptes et des rôles : dossier `10 Comptes` de la
+[collection Bruno](./utiliser-bruno.md).
 
 ---
 
@@ -126,28 +151,57 @@ Voir [Comment configurer Dataverse et Solr pour RUDI ?](./configuration-datavers
 | Fournisseur, nœud et compte ROBOT déclarés dans le portail | Erreur 401/403 côté nœud | [Nœud producteur](./configuration-producer-node.md) |
 | Vocabulaires KOS chargés | Rapport d'intégration en erreur (thème ou licence inconnu) | [KOS](./configuration-kos.md) |
 | Collections Dataverse et token API configurés | Erreur kalim lors de la création du jeu de données | [Dataverse](./configuration-dataverse.md) |
+| Organisation productrice validée et rattachée au nœud | Rapport d'intégration en erreur `ERR_113` | [Organisations et rattachement](./organisations-et-rattachement.md) |
 | Index Solr à jour | Jeu de données absent de la recherche | [Dataverse](./configuration-dataverse.md) |
+| Facettes de `rudi_data` configurées | Accueil en chargement, thèmes affichés `[code]` | [Dataverse](./configuration-dataverse.md) |
+
+---
+
+## Exposition du catalogue
+
+| Point d'accès | Usage |
+|---------------|-------|
+| `/konsult/v1/datasets/metadatas` | Recherche (texte, thèmes, mots-clés, producteurs) |
+| `/konsult/v1/datasets/metadatas/dcat` | Catalogue au format DCAT-AP (JSON-LD), pour data.gouv.fr ou les catalogues européens |
+| `/konsult/v1/sitemap/…`, `/konsult/v1/robots/robots.txt` | Référencement (voir [configuration-sitemap.md](./configuration-sitemap.md)) |
+| `/medias/<global_id>/<media_id>/dwnl` | Téléchargement d'un fichier via l'apigateway |
+
+Bruno : dossiers `40 Jeux de données/02 Consulter le catalogue` et
+`70 Exposition`.
 
 ---
 
 ## Publier un premier jeu de données de test
 
-1. Se connecter au manager du nœud : `https://producteur.<domaine>/manager/` (identifiants : voir [Définir les identifiants du manager](./configuration-producer-node.md#étape-3--définir-les-identifiants-du-manager)).
-2. Créer une organisation et un contact.
-3. Créer une métadonnée avec un thème et une licence issus de KOS, puis joindre
-   un petit fichier CSV.
-4. Publier la métadonnée et consulter son **rapport d'intégration** dans le
-   manager : il doit être `OK`.
-5. Vérifier côté portail :
+Prérequis : vocabulaires KOS chargés, organisation productrice validée et
+rattachée au nœud ([Organisations et rattachement](./organisations-et-rattachement.md)).
+
+### Option A — Depuis le manager du nœud
+
+1. Se connecter au manager : `https://<PRODUCER_DOMAIN>/manager/` (identifiants :
+   voir [Définir les identifiants du manager](./configuration-producer-node.md#étape-3--définir-les-identifiants-du-manager)).
+2. Créer un **contact**.
+3. Créer une **métadonnée** : producteur = l'organisation rattachée, contact,
+   thème et licence proposés par le formulaire (issus de KOS), dates et
+   description ; joindre un petit fichier CSV.
+4. Publier, puis consulter le **rapport d'intégration** de la métadonnée dans
+   le manager : il doit être `OK`. La métadonnée n'est envoyée au portail
+   qu'une fois son fichier déposé dans le stockage du nœud.
+5. Pendant l'intégration :
 
    ```bash
-   # Logs de kalim pendant l'intégration
-   docker logs -f rudiplatform-kalim-1
-
-   # Métadonnée visible via konsult (remplacer <global_id> par l'identifiant de la métadonnée)
-   curl -s https://rudi.<domaine>/konsult/v1/datasets/<global_id>/metadatas
+   docker logs -f --since 1m rudiplatform-kalim-1 2>&1 | grep -v -i hibernate
+   docker logs -f --since 1m rudiplatform-producer-catalog 2>&1 | grep -i -E "portal|error"
    ```
 
-6. Rechercher le jeu de données sur le portail puis télécharger le fichier.
+6. Sur le portail : rechercher le jeu de données, vérifier son thème (libellé
+   et pictogramme) et télécharger le fichier.
+
+### Option B — Bruno
+
+`40 Jeux de données/01 Publier un jeu de données (nœud)` envoie à kalim une
+métadonnée comme le ferait le catalog du nœud, vérifie l'intégration et la
+présence sur le portail (sans fichier réellement déposé sur le nœud : le
+téléchargement échouera). Voir [Utiliser Bruno](./utiliser-bruno.md).
 
 En cas d'échec, voir [TROUBLESHOOTING.md](../../TROUBLESHOOTING.md).

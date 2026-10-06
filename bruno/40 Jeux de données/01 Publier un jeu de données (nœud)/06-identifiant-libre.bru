@@ -1,0 +1,25 @@
+meta {
+  name: Obtenir un identifiant libre (global_id)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{protocol}}://{{host}}/kalim/v1/id_generation
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/04-noeud-robot");
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : nœud producteur (connexion automatique avant la requête).
+}

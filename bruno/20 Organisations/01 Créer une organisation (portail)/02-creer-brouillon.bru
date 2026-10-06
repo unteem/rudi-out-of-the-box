@@ -1,0 +1,42 @@
+meta {
+  name: Créer la demande (brouillon)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{protocol}}://{{host}}/strukture/v1/organizations/tasks
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "object_type": "Organization",
+    "name": "{{process.env.ORGANIZATION_NAME}}",
+    "description": "Organisation créée depuis le portail"
+  }
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/03-utilisateur");
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("organizationUuid", res.body.asset.uuid);
+    bru.setVar("draftTask", JSON.stringify(res.body));
+  }
+}
+
+tests {
+  test("réponse 2xx", function () {
+    expect(res.status).to.be.within(200, 299);
+  });
+}
+
+docs {
+  Compte : utilisateur (connexion automatique avant la requête).
+
+  Crée l'organisation (statut DRAFT) et sa demande ; conserve la tâche brouillon (draftTask) et organizationUuid.
+}

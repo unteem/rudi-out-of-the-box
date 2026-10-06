@@ -1,0 +1,37 @@
+meta {
+  name: Suivre l'intégration
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{protocol}}://{{host}}/kalim/v1/integrationRequest/search?globalId={{globalId}}&order=-submissionDate
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.runRequest("00 Authentification/04-noeud-robot");
+  if (!bru.getVar("globalId") && bru.getProcessEnv("DATASET_GLOBAL_ID")) { bru.setVar("globalId", bru.getProcessEnv("DATASET_GLOBAL_ID")); }
+}
+
+tests {
+  test("intégration traitée sans erreur", function () {
+    expect(res.status).to.equal(200);
+    const r = (res.body.elements || [])[0];
+    expect(r, "aucune demande d'intégration pour ce global_id").to.be.an("object");
+    expect(r.progress_status, "intégration pas encore traitée : relancer").to.not.equal("CREATED");
+    expect(r.integration_status, "intégration refusée : voir les logs de kalim").to.equal("OK");
+  });
+}
+
+docs {
+  Compte : nœud producteur (connexion automatique avant la requête).
+
+  progress_status : CREATED (en attente), INTEGRATION_HANDLED, REPORT_SUCCESS
+  ou REPORT_ERROR ; integration_status : OK ou KO. Le détail des erreurs
+  (ex. ERR_113 : organisation productrice inconnue) figure dans le rapport
+  d'intégration renvoyé au nœud et dans les logs de kalim
+  (docker logs rudiplatform-kalim-1). Relancer après quelques secondes si la
+  demande est encore CREATED.
+}
